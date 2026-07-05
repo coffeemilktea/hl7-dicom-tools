@@ -390,6 +390,7 @@
   </div>
   <div class="nav-links" style="margin-left:auto;">
     <a href="msgparser.html">HL7 Parser</a>
+    <a href="dicom-viewer.html">DICOM Viewer</a>
     <a href="diff-checker.html">Diff Checker</a>
     <a href="mwl-simulator.html">MWL Sim</a>
     <a href="dicom-hl7-order.html">DICOM→HL7</a>
@@ -670,10 +671,18 @@ function elem(group, element, vr, valueBytes) {
   return concat(hdr, valueBytes);
 }
 
+// String values are encoded as UTF-8 — the dataset declares (0008,0005) ISO_IR 192.
+// Padding must happen after encoding: multi-byte characters make byte length ≠ string length.
+const _utf8 = new TextEncoder();
 function selem(group, element, vr, str) {
-  let s = String(str);
-  if (s.length % 2 !== 0) s += (vr === 'UI') ? '\0' : ' ';
-  return elem(group, element, vr, strBytes(s));
+  let b = _utf8.encode(String(str));
+  if (b.length % 2 !== 0) {
+    const padded = new Uint8Array(b.length + 1);
+    padded.set(b);
+    padded[b.length] = (vr === 'UI') ? 0x00 : 0x20;
+    b = padded;
+  }
+  return elem(group, element, vr, b);
 }
 
 function uselem(group, element, v) { return elem(group, element, 'US', u16LE(v)); }
@@ -851,6 +860,7 @@ function buildDICOM(cfg) {
   const so   = (g,e,vr,v)  => { if (v && String(v).trim()) s(g, e, vr, String(v).trim()); };
   const us   = (g,e,v)     => add(g, e, uselem(g, e, v));
 
+  s (0x0008,0x0005,'CS', 'ISO_IR 192');   // UTF-8 — matches selem() encoding
   s (0x0008,0x0016,'UI', sopClassUID);
   s (0x0008,0x0018,'UI', sopInstUID);
   s (0x0008,0x0020,'DA', studyDate);
@@ -1192,16 +1202,14 @@ const TAG_NAMES = {
 
 // ─── DICOM value decoder ──────────────────────────────────────────────────────
 
+const _utf8dec = new TextDecoder('utf-8', { fatal: false });
 function decodeDICOMValue(vr, bytes) {
   if (!bytes || bytes.length === 0) return '';
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const text = () => {
-    let s = '';
-    for (let i = 0; i < bytes.length; i++) {
-      const c = bytes[i];
-      if (c !== 0) s += String.fromCharCode(c);
-    }
-    return s.trim();
+    let end = bytes.length;
+    while (end > 0 && bytes[end - 1] === 0) end--;
+    return _utf8dec.decode(bytes.subarray(0, end)).trim();
   };
   switch (vr) {
     case 'US': {
@@ -1475,10 +1483,8 @@ function handleDICOMFile(file) {
       const rows = parseDICOM(e.target.result);
 
       // Count element types for summary
-      const nMeta   = rows.filter(r => r.tag && r.tag.startsWith('0002') && !r.isDelimiter && !r.isItem).length;
       const nPixel  = rows.filter(r => r.isPixel).length;
       const nSQ     = rows.filter(r => r.isSQ).length;
-      const nOther  = rows.filter(r => !r.isDelimiter && !r.isItem && !r.isSQ && !r.isPixel).length;
 
       document.getElementById('readerFileName').textContent = file.name;
       document.getElementById('readerSummary').innerHTML =

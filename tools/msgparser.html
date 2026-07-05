@@ -853,6 +853,7 @@
   <span class="spacer"></span>
   <span class="hint">Paste an HL7 message to begin</span>
   <div class="nav-links">
+    <a href="dicom-viewer.html">DICOM Viewer</a>
     <a href="dicom-generator.html">DICOM Gen</a>
     <a href="diff-checker.html">Diff Checker</a>
     <a href="mwl-simulator.html">MWL Sim</a>
@@ -1365,8 +1366,9 @@ function renderStructured(parsed) {
     container.appendChild(buildSegTable(seg, parsed.delimiters, blockId));
   }
 
-  // Scroll spy: keep nav in sync with visible content
-  container.addEventListener('scroll', () => {
+  // Scroll spy: keep nav in sync with visible content.
+  // Assigned via onscroll so re-parsing replaces the handler instead of stacking listeners.
+  container.onscroll = () => {
     const wrapTop = container.getBoundingClientRect().top;
     let activeIdx = 0;
     for (let i = 0; i < navItems.length; i++) {
@@ -1374,7 +1376,7 @@ function renderStructured(parsed) {
       if (el && el.getBoundingClientRect().top - wrapTop <= 10) activeIdx = i;
     }
     navItems.forEach((n, i) => n.classList.toggle('nav-active', i === activeIdx));
-  }, { passive: true });
+  };
 }
 
 function buildSegTable(seg, delimiters, blockId) {
@@ -1569,7 +1571,9 @@ function renderJSON(parsed) {
 }
 
 function syntaxHighlightJSON(json) {
-  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+  // Message values may contain HTML — escape every emitted piece so nothing injects markup.
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)|[<>&]/g, match => {
+    if (match === '<' || match === '>' || match === '&') return esc(match);
     let cls = 'color:var(--text)';
     if (/^"/.test(match)) {
       if (/:$/.test(match)) cls = 'color:var(--accent)';
@@ -1577,7 +1581,7 @@ function syntaxHighlightJSON(json) {
     } else if (/true|false/.test(match)) cls = 'color:var(--yellow)';
     else if (/null/.test(match)) cls = 'color:var(--muted)';
     else cls = 'color:var(--orange)';
-    return `<span style="${cls}">${match}</span>`;
+    return `<span style="${cls}">${esc(match)}</span>`;
   });
 }
 
@@ -2076,17 +2080,11 @@ function renderFHIR(resource, fhirVersion) {
   const clinicSec = fhirSection('Key Fields');
   const cardsDiv = document.createElement('div');
   cardsDiv.className = isGeneric ? 'fhir-scalar-grid' : 'fhir-cards';
-  clinicSec.appendChild(cardsDiv);
   const body = document.createElement('div');
   body.className = 'fhir-section-body';
   for (const [label, val] of fields) {
     cardsDiv.appendChild(fhirCard(label, val));
   }
-  if (!isGeneric) {
-    clinicSec.appendChild(document.createElement('div')); // spacer not needed; cards in body
-  }
-  // Move cardsDiv inside body for padding
-  clinicSec.removeChild(cardsDiv);
   body.appendChild(cardsDiv);
   clinicSec.appendChild(body);
   panel.appendChild(clinicSec);
@@ -2100,7 +2098,6 @@ function renderFHIR(resource, fhirVersion) {
   }
 
   // 3. Identifiers section
-  const identifiers = resource.identifier || resource.identifier;
   if (Array.isArray(resource.identifier) && resource.identifier.length > 0) {
     const idSec = fhirSection('Identifiers');
     const idBody = document.createElement('div');
@@ -2136,7 +2133,9 @@ function renderFHIR(resource, fhirVersion) {
 }
 
 function fhirSyntaxHighlight(json) {
-  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+  // Resource values may contain HTML — escape every emitted piece so nothing injects markup.
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)|[<>&]/g, match => {
+    if (match === '<' || match === '>' || match === '&') return esc(match);
     let color;
     if (/^"/.test(match)) {
       if (/:$/.test(match)) color = '#66d9ef'; // key → cyan
@@ -2144,16 +2143,11 @@ function fhirSyntaxHighlight(json) {
     } else if (/true|false/.test(match)) color = '#ae81ff'; // boolean → purple
     else if (/null/.test(match)) color = '#f92672';         // null → red
     else color = '#ae81ff';                                  // number → purple
-    return `<span style="color:${color}">${match}</span>`;
+    return `<span style="color:${color}">${esc(match)}</span>`;
   });
 }
 
 // ─── Show/hide helpers ───────────────────────────────────────────────────────
-function showHL7Output() {
-  document.querySelector('.main-grid').style.display = '';
-  document.getElementById('fhir-panel').style.display = 'none';
-}
-
 function showFHIROutput() {
   // Keep the main-grid (input panel) visible, hide right-side output panel only
   // We do this by hiding the right panel (second child of main-grid) and showing fhir-panel

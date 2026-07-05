@@ -333,6 +333,7 @@
   </div>
   <div class="nav-links" style="margin-left:auto;">
     <a href="msgparser.html">HL7 Parser</a>
+    <a href="dicom-viewer.html">DICOM Viewer</a>
     <a href="dicom-generator.html">DICOM Gen</a>
     <a href="mwl-simulator.html">MWL Sim</a>
     <a href="dicom-hl7-order.html">DICOM→HL7</a>
@@ -739,11 +740,10 @@ function rerender() {
       for (const d of diffs) {
         const onlyVal = segA ? d.a : d.b;
         if (!onlyVal && !showBothEmpty) continue;
-        const names = FIELD_NAMES[name] || [];
         const cellA = segA ? `<td class="cell-present-only">${esc(d.a)||'<span style="opacity:.3">—</span>'}</td>` : `<td class="cell-missing"></td>`;
         const cellB = segB ? `<td class="cell-present-only">${esc(d.b)||'<span style="opacity:.3">—</span>'}</td>` : `<td class="cell-missing"></td>`;
         html.push(`<tr class="row-miss">
-          <td class="field-label"><span class="field-id">${name}.${d.fieldNum}</span>${d.fieldName ? `<div class="field-name">${esc(d.fieldName)}</div>` : ''}</td>
+          <td class="field-label"><span class="field-id">${esc(name)}.${d.fieldNum}</span>${d.fieldName ? `<div class="field-name">${esc(d.fieldName)}</div>` : ''}</td>
           ${cellA}${cellB}
         </tr>`);
       }
@@ -786,7 +786,7 @@ function rerender() {
           const valB = d.b ? esc(d.b) : (d.status === 'miss-b' ? '' : '<span style="opacity:.3">—</span>');
 
           html.push(`<tr class="${rowClass}">
-            <td class="field-label"><span class="field-id">${name}.${d.fieldNum}</span>${d.fieldName ? `<div class="field-name">${esc(d.fieldName)}</div>` : ''}</td>
+            <td class="field-label"><span class="field-id">${esc(name)}.${d.fieldNum}</span>${d.fieldName ? `<div class="field-name">${esc(d.fieldName)}</div>` : ''}</td>
             <td class="${cellClassA}">${valA}</td>
             <td class="${cellClassB}">${valB}</td>
           </tr>`);
