@@ -229,6 +229,7 @@
   </div>
   <div class="nav-links">
     <a href="msgparser.html">HL7 Parser</a>
+    <a href="dicom-viewer.html">DICOM Viewer</a>
     <a href="diff-checker.html">Diff Checker</a>
     <a href="dicom-generator.html">DICOM Gen</a>
     <a href="dicom-hl7-order.html">DICOM→HL7</a>
@@ -1041,7 +1042,7 @@ function dline(indent, tag, vr, val, name) {
   return `<div class="dump-line">${ind}<span class="d-tag">${t}</span> <span class="d-vr">${vr}</span> <span class="${blank?'d-empty':'d-val'}">[${esc(val)}]</span><span class="d-len"> #${lenStr}</span>  <span class="d-name">${esc(name)}</span></div>`;
 }
 function dcmt(text) {
-  return `<div class="dump-line"><span class="d-cmmt"># ${text}</span></div>`;
+  return `<div class="dump-line"><span class="d-cmmt"># ${esc(text)}</span></div>`;
 }
 function dblank() { return '<div class="dump-line"> </div>'; }
 

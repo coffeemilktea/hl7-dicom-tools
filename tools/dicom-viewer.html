@@ -2524,7 +2524,6 @@ function renderTagTable(){
       }
       const tr = document.createElement('tr');
       const pad = 6+depth*14;
-      const editable = depth===0 || true; // nested leaves also editable in place
       const canEdit = !el.sq && !el.encaps && EDITABLE_VRS.has(el.vr) && (!el.val || el.val.length<=1024) && el.tag!=='7FE00010';
       tr.innerHTML =
         '<td class="t-tag" style="padding-left:'+pad+'px">'+fmtTag(el.tag)+'</td>'+

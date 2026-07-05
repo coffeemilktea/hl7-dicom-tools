@@ -396,6 +396,7 @@
   </div>
   <div class="nav-links" style="margin-left:auto;">
     <a href="msgparser.html">HL7 Parser</a>
+    <a href="dicom-viewer.html">DICOM Viewer</a>
     <a href="diff-checker.html">Diff Checker</a>
     <a href="dicom-generator.html">DICOM Gen</a>
     <a href="mwl-simulator.html">MWL Sim</a>
@@ -724,7 +725,7 @@ const MAPPING = [
   { tag:'00100021', seg:'PID', field:3,  desc:'Patient ID Issuer (CX suffix)'                    },
   { tag:'00100030', seg:'PID', field:7,  desc:'Date/Time of Birth',             xform:'date'     },
   { tag:'00100040', seg:'PID', field:8,  desc:'Administrative Sex'                               },
-  { tag:'00080050', seg:'OBR', field:18, desc:'Filler Field 1 (Accession №)'                     },
+  { tag:'00080050', seg:'OBR', field:18, desc:'Placer Field 1 (Accession №)'                     },
   { tag:'00080020', seg:'OBR', field:7,  desc:'Observation Date/Time',          xform:'datetime' },
   { tag:'00080060', seg:'OBR', field:24, desc:'Diagnostic Service Section ID'                    },
   { tag:'00081030', seg:'OBR', field:4,  desc:'Universal Service ID (Study)'                     },
@@ -791,10 +792,10 @@ function parseDICOM(buf) {
     let len, dOff;
     if (LONG_VRS.has(vr)) {
       if (off + 12 > buf.byteLength) return null;
-      len  = view.getUint32(off + 8, true);   // always LE for length
+      len  = u32(off + 8);
       dOff = off + 12;
     } else {
-      len  = view.getUint16(off + 6, true);
+      len  = u16(off + 6);
       dOff = off + 8;
     }
     return { g, e, vr, len, dOff, next: dOff + (len === 0xFFFFFFFF ? 0 : len) };
@@ -834,7 +835,10 @@ function parseDICOM(buf) {
   }
 
   // ── Parse meta group first (always explicit LE) ──
+  // The declared transfer syntax is applied only after the meta group ends;
+  // switching endianness mid-group would corrupt the remaining meta elements.
   let cur = offset;
+  let dsExplicit = true, dsLE = true;
   while (cur < buf.byteLength - 8) {
     if (u16(cur) !== 0x0002) break;    // meta group ended
     const it = readExplicit(cur);
@@ -846,13 +850,15 @@ function parseDICOM(buf) {
     // Detect transfer syntax
     if (k === '00020010') {
       const ts = v.replace(/\x00/g,'').trim();
-      if (ts === '1.2.840.10008.1.2')   { explicit=false; le=true;  }
-      else if (ts === '1.2.840.10008.1.2.2') { explicit=true;  le=false; }
-      else                                   { explicit=true;  le=true;  }
+      if (ts === '1.2.840.10008.1.2')        { dsExplicit=false; dsLE=true;  }
+      else if (ts === '1.2.840.10008.1.2.2') { dsExplicit=true;  dsLE=false; }
+      else                                   { dsExplicit=true;  dsLE=true;  }
     }
     if (it.next <= cur) break;
     cur = it.next;
   }
+  explicit = dsExplicit;
+  le = dsLE;
 
   // ── Parse dataset ────────────────────────────────
   let count = 0;
@@ -987,7 +993,7 @@ function generateORM() {
   //   .7  = Observation Date/Time
   //   .15 = Specimen Source (body part)
   //   .16 = Ordering Provider
-  //   .18 = Filler Field 1 (accession)
+  //   .18 = Placer Field 1 (accession)
   //   .20 = Filler Field 1 (study ID)
   //   .21 = Filler Field 2 (station name)
   //   .24 = Diagnostic Service Section ID (modality)
@@ -1013,7 +1019,7 @@ function generateORM() {
     body,         // 15 - Specimen Source (body part)
     provider,     // 16 - Ordering Provider
     '',           // 17
-    accession,    // 18 - Filler Field 1 (accession)
+    accession,    // 18 - Placer Field 1 (accession)
     '',           // 19
     studyID,      // 20 - Filler Field 1 (Study ID)
     station,      // 21 - Filler Field 2 (Station)
@@ -1159,7 +1165,7 @@ const SEG_FIELDS = {
   PID:{ 1:'Set ID',3:'Patient Identifier List',5:'Patient Name',7:'Date/Time of Birth',8:'Admin Sex',11:'Patient Address',13:'Phone Number - Home',18:'Patient Account Number' },
   PV1:{ 1:'Set ID',2:'Patient Class',3:'Assigned Patient Location',7:'Attending Doctor',8:'Referring Doctor',17:'Admitting Doctor',19:'Visit Number',20:'Financial Class' },
   ORC:{ 1:'Order Control',2:'Placer Order Number',3:'Filler Order Number',5:'Order Status',9:'Date/Time of Transaction',12:'Ordering Provider',15:'Order Effective Date/Time' },
-  OBR:{ 1:'Set ID',2:'Placer Order Number',3:'Filler Order Number',4:'Universal Service ID',7:'Observation Date/Time',15:'Specimen Source',16:'Ordering Provider',18:'Filler Field 1 (Accession)',20:'Filler Field 1 (Study ID)',21:'Filler Field 2 (Station)',24:'Diagnostic Service Section ID (Modality)',34:'Technician',44:'Procedure Code' },
+  OBR:{ 1:'Set ID',2:'Placer Order Number',3:'Filler Order Number',4:'Universal Service ID',7:'Observation Date/Time',15:'Specimen Source',16:'Ordering Provider',18:'Placer Field 1 (Accession)',20:'Filler Field 1 (Study ID)',21:'Filler Field 2 (Station)',24:'Diagnostic Service Section ID (Modality)',34:'Technician',44:'Procedure Code' },
   ZDS:{ 1:'Study Instance UID' },
 };
 
@@ -1201,6 +1207,9 @@ function toggleDetail(lineEl, rawLine, seg) {
 
   const fnames  = SEG_FIELDS[seg] || {};
   const fields  = rawLine.split('|');
+  // MSH.1 is the field separator itself — consumed by split(). Re-insert it so
+  // fields[N] === MSH.N (otherwise every MSH field label is off by one).
+  if (seg === 'MSH') fields.splice(1, 0, '|');
   // fields[0] = segment name; fields[1..] = field .1, .2, …
   let html = `<div class="seg-detail"><div class="seg-detail-hdr">${esc(seg)} — click fields to expand</div>`;
   for (let i = 1; i < fields.length; i++) {
