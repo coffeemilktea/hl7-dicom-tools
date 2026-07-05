@@ -444,6 +444,7 @@
 </header>
 
 <div class="toolbar">
+  <button class="tbtn" id="btn-sample">🔬 Demo Image</button>
   <button class="tbtn" id="btn-open">📂 Open Files</button>
   <button class="tbtn" id="btn-open-dir">🗂 Open Folder</button>
   <input type="file" id="file-input" multiple hidden />
@@ -2343,8 +2344,73 @@ window.addEventListener('keydown', e=>{
 /* ═══════════════════════ File loading & series ═══════════════════════ */
 $('btn-open').addEventListener('click', ()=>$('file-input').click());
 $('btn-open-dir').addEventListener('click', ()=>$('dir-input').click());
+$('btn-sample').addEventListener('click', loadSample);
 $('file-input').addEventListener('change', e=>{ loadFiles([...e.target.files]); e.target.value=''; });
 $('dir-input').addEventListener('change', e=>{ loadFiles([...e.target.files]); e.target.value=''; });
+
+function loadSample() {
+  const rows = 256, cols = 256;
+  const px = new Int16Array(rows * cols);
+  const cx = cols / 2, cy = rows / 2;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const r = Math.hypot(x - cx, y - cy);
+      let v = -1000; // air
+      if (r < 110) v = 40 + 30 * Math.sin(x / 12) * Math.cos(y / 14); // soft tissue
+      if (r < 60) v = -50 + Math.random() * 30;                 // fat-ish
+      if (r < 30) v = 900;                                    // bone-ish core
+      if (r > 105 && r < 112) v = 1200;                           // bony rim
+      px[y * cols + x] = Math.round(v);
+    }
+  }
+
+  const pixelBytes = new Uint8Array(px.buffer);
+  const ds = new Map();
+  const addStr = (tag, vr, val) => ds.set(tag, newEl(tag, vr, utf8enc.encode(val)));
+  const addU16 = (tag, vr, val) => ds.set(tag, newEl(tag, vr, new Uint8Array([val & 0xff, (val >> 8) & 0xff])));
+  
+  addStr('00080016', 'UI', '1.2.840.10008.5.1.4.1.1.2'); // CT Image Storage
+  addStr('00080018', 'UI', '1.2.840.10008.5.1.4.1.1.2.1.' + Date.now());
+  addStr('00080060', 'CS', 'CT');
+  addStr('0008103e', 'LO', 'Demo Axial Phantom');
+  addStr('00081030', 'LO', 'Synthetic Study');
+  addStr('00080070', 'LO', 'Generic DICOM Viewer');
+  addStr('00100010', 'PN', 'DOE^JOHN^A');
+  addStr('00100020', 'LO', 'PHANTOM123');
+  addStr('0020000d', 'UI', '1.2.840.10008.5.1.4.1.1.2.999.' + Date.now());
+  addStr('0020000e', 'UI', '1.2.840.10008.5.1.4.1.1.2.888.' + Date.now());
+  addU16('00280002', 'US', 1);
+  addStr('00280004', 'CS', 'MONOCHROME2');
+  addU16('00280010', 'US', rows);
+  addU16('00280011', 'US', cols);
+  addU16('00280100', 'US', 16);
+  addU16('00280101', 'US', 16);
+  addU16('00280102', 'US', 15);
+  addU16('00280103', 'US', 1);
+  addStr('00281050', 'DS', '40');
+  addStr('00281051', 'DS', '350');
+  addStr('00281052', 'DS', '0');
+  addStr('00281053', 'DS', '1');
+  ds.set('7fe00010', newEl('7fe00010', 'OW', pixelBytes));
+
+  const f = {
+    name: 'demo-phantom.dcm',
+    size: pixelBytes.length,
+    meta: new Map(),
+    ds: ds,
+    tsUID: '1.2.840.10008.1.2.1',
+    modified: false
+  };
+  
+  f.sopClassUID = dsStr(f.ds, '00080016');
+  f.sopInfo = SOP_CLASSES[f.sopClassUID] || null;
+
+  state.files.push(f);
+  rebuildSeries();
+  selectSeries(state.series.length - 1);
+  const dragState = document.getElementById('dropzone') || document.querySelector('.dropzone');
+  if (dragState) dragState.style.display = 'none';
+}
 
 let dragCounter = 0;
 window.addEventListener('dragenter', e=>{ e.preventDefault(); if(++dragCounter===1) document.body.classList.add('dragging'); });
