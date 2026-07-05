@@ -4,13 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DICOM MWL Simulator</title>
+  <link rel="stylesheet" href="theme.css" />
+  <script src="theme.js"></script>
   <style>
     :root {
-      --bg: #272822; --surface: #1e1f1a; --surface2: #3e3d32; --border: #49483e;
-      --accent: #66d9ef; --accent-dim: #1e4d57; --green: #a6e22e; --red: #f92672;
-      --yellow: #e6db74; --text: #f8f8f2; --text-dim: #75715e;
-      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
-      --ui: system-ui, -apple-system, sans-serif;
+      --accent-dim: #1e4d57;
+      --text-dim: var(--muted);
+      --mono: var(--font-mono);
+      --ui: var(--font-sans);
+    }
+    [data-theme="light"] {
+      --accent-dim: #e0f2f1;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: var(--ui); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -233,6 +237,7 @@
     <a href="diff-checker.html">Diff Checker</a>
     <a href="dicom-generator.html">DICOM Gen</a>
     <a href="dicom-hl7-order.html">DICOM→HL7</a>
+    <button id="btn-theme" class="btn-theme" style="margin-left:4px"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
   </div>
   <div class="mode-toggle">
     <button class="mode-btn active-local" id="btn-local" onclick="setMode('local')">◉ SIMULATED</button>
