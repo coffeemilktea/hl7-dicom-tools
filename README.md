@@ -1,78 +1,51 @@
-# Healthcare Data Tools
+# HL7 / DICOM Tools Workspace
 
-Browser-based, fully client-side tools for DICOM and HL7 medical data standards.
+Browser-based tools for working with HL7 v2.x and DICOM medical data standards.
+Every HTML tool is single-file and zero-dependency — open it in a browser and go;
+no build step, no server, and no data leaves your browser.
 
-🌐 Live Site: **[ocha.dev](https://ocha.dev)**
+A curated set of these tools is published at **[ocha.dev](https://ocha.dev)**
+("Healthcare Data Tools"), served from [`pages-repo/`](pages-repo/).
 
----
+## Tools
 
-## 🔒 Privacy & Security
+| File | Title | What it does | Preview |
+|------|-------|--------------|---------|
+| [`msgparser.html`](msgparser.html) | HL7 v2 Parser | Parse HL7 v2.x messages into a segment/field breakdown | <details><summary>View</summary>![HL7 v2 Parser](screenshots/msgparser.png)</details> |
+| [`hl7-diff.html`](hl7-diff.html) | HL7 Diff Checker | Compare two HL7 messages side by side | <details><summary>View</summary>![HL7 Diff Checker](screenshots/hl7-diff.png)</details> |
+| [`mirth-transformer.html`](mirth-transformer.html) | Mirth Transformer Tester | Test Mirth Connect transformer JavaScript against sample messages | <details><summary>View</summary>![Mirth Transformer Tester](screenshots/mirth-transformer.png)</details> |
+| [`dicom-generator.html`](dicom-generator.html) | DICOM Toolbox | Generate valid Explicit VR Little Endian DICOM files (Secondary Capture), with custom image upload | <details><summary>View</summary>![DICOM Toolbox](screenshots/dicom-generator.png)</details> |
+| [`dicom-viewer.html`](dicom-viewer.html) | Generic DICOM Viewer | View DICOM files and their tag data | <details><summary>View</summary>![Generic DICOM Viewer](screenshots/dicom-viewer.png)</details> |
+| [`dicom-hl7-order.html`](dicom-hl7-order.html) | DICOM → HL7 Order Generator | Build HL7 order messages from DICOM attributes | <details><summary>View</summary>![DICOM -> HL7 Order Generator](screenshots/dicom-hl7-order.png)</details> |
+| [`mwl-simulator.html`](mwl-simulator.html) | DICOM MWL Simulator | Simulate a DICOM Modality Worklist | <details><summary>View</summary>![DICOM MWL Simulator](screenshots/mwl-simulator.png)</details> |
 
-**Client-side only — no data leaves your browser.**  
-All parsing, rendering, and modification are performed locally within your browser using JavaScript. No files, HL7 messages, or DICOM images are uploaded to any server. This makes these tools safe for inspecting data that may contain Protected Health Information (PHI).
+## Subprojects
 
----
+- [`mwl-emulator/`](mwl-emulator/) — Python command-line DICOM MWL C-FIND SCU
+  (acts like a modality querying a worklist server), built on pynetdicom.
+  See its own [README](mwl-emulator/README.md).
+- [`pages-repo/`](pages-repo/) — Jekyll source for the ocha.dev GitHub Pages site;
+  published copies of the tools live in `pages-repo/tools/`.
 
-## 🛠️ Available Tools, Descriptions, and Use Cases
+## Shared theme
 
-Here is a detailed breakdown of the tools available in this repository:
+[`theme.css`](theme.css) + [`theme.js`](theme.js) provide the shared Monokai
+dark/light theme used by `msgparser.html`, `dicom-generator.html`, and
+`hl7-diff.html`. The theme choice persists across tools via the
+localStorage key `hl7-tools-theme`.
 
-### 1. DICOM Viewer & Tag Morph
-*   **Path:** [`tools/dicom-viewer.html`](tools/dicom-viewer.html)
-*   **Description:** A browser-based medical imaging viewer supporting major storage SOP classes (CT, MR, US, XA, NM, PET, Mammo, RT, and more). Features window/level adjustments, cine playback, and 2D measurements. It also enables inline and batch tag morphing, allowing you to edit metadata and export valid DICOM files.
-*   **Use Cases:**
-    *   Quickly viewing DICOM image series and verifying metadata/tags without a full PACS viewer.
-    *   Anonymizing or editing patient, study, or series tags.
-    *   Troubleshooting header issues and re-exporting corrected DICOM files.
+## Development
 
-### 2. DICOM Toolbox (Generator)
-*   **Path:** [`tools/dicom-generator.html`](tools/dicom-generator.html)
-*   **Description:** A tool for creating, configuring, and generating valid DICOM files from scratch or based on templates.
-*   **Use Cases:**
-    *   Building synthetic or mock datasets for testing PACS, VNA, or other DICOM-compatible software.
-    *   Learning and exploring the structure of DICOM headers, tags, and data elements.
-    *   Testing application boundary conditions with custom-crafted DICOM tag values.
+Dev server configs live in `.claude/launch.json` (`npx serve` on port 3000,
+`python3 -m http.server` on 8080, plus configs for related projects below).
+The tools also work opened directly as `file://`.
 
-### 3. HL7 v2.x Parser
-*   **Path:** [`tools/msgparser.html`](tools/msgparser.html)
-*   **Description:** A parser that decodes raw HL7 v2.x messages, providing a detailed, interactive breakdown of segments, fields, components, and subcomponents.
-*   **Use Cases:**
-    *   Troubleshooting clinical interface and integration engine messages.
-    *   Decoding complex or nested HL7 messages to inspect patient identifiers (PID), order details (ORC/OBR), or observation values (OBX).
-    *   Learning HL7 v2 segment structures and field definitions.
+## Related projects (outside this folder)
 
-### 4. HL7 Diff Checker
-*   **Path:** [`tools/diff-checker.html`](tools/diff-checker.html)
-*   **Description:** A side-by-side HL7 message comparison tool that highlights segment-level and field-level differences, additions, and deletions.
-*   **Use Cases:**
-    *   Comparing an inbound message with its outbound/transformed counterpart to verify mapping logic.
-    *   Comparing messages from different source systems to align specifications.
-    *   Troubleshooting interface integration issues by checking why one message succeeded while another failed.
+- **HL7 parser with mapping file** — `/Users/meiosis/hl7-parser/`
+  ([github.com/coffeemilktea/hl7-parser](https://github.com/coffeemilktea/hl7-parser)):
+  ADT/ORM/ORU parser driven by an editable `mappings.json` for custom field
+  labels, value translations, and message rewrites.
 
-### 5. Modality Worklist (MWL) Simulator
-*   **Path:** [`tools/mwl-simulator.html`](tools/mwl-simulator.html)
-*   **Description:** A utility to simulate or query a DICOM Modality Worklist (C-FIND SCU). Test worklist integrations using a built-in mock dataset or connect to an active worklist SCP.
-*   **Use Cases:**
-    *   Testing DICOM C-FIND connections and query/retrieve workflows.
-    *   Validating modality query filter parameters (e.g., Scheduled Procedure Step Start Date, Modality).
-    *   Simulating imaging equipment (modalities) querying an RIS or PACS worklist.
-
-### 6. DICOM ➔ HL7 Order Generator
-*   **Path:** [`tools/dicom-hl7-order.html`](tools/dicom-hl7-order.html)
-*   **Description:** A bridging tool that extracts relevant patient and study metadata tags from an uploaded DICOM file and automatically generates a standard HL7 ORM^O01 radiology order message.
-*   **Use Cases:**
-    *   Bridging imaging archives (PACS) with clinical information systems (RIS/EMR).
-    *   Simulating order messages using existing DICOM files for interface testing.
-    *   Validating alignment between DICOM attributes and HL7 order segments.
-
----
-
-## 🚀 Running Locally
-
-Since these tools are completely client-side and built with standard HTML, CSS, and JavaScript, they can be run locally with ease:
-
-1.  **Direct Open:** You can open any `.html` file directly in your browser (e.g., double-click or drag-and-drop the file into a browser window).
-2.  **Local HTTP Server:** For features that require server context, run a local web server from the repository root:
-    *   **Python 3:** `python -m http.server 8000`
-    *   **Node.js:** `npx http-server -p 8000`
-    *   Access the tools at `http://localhost:8000`.
+> Note: this folder lives in OneDrive for sync; standalone projects with git
+> repos are kept outside it (OneDrive and git histories don't mix well).
