@@ -116,12 +116,14 @@
 .nav-links a:hover { color: var(--text); border-color: var(--accent); }
 
 /* ═══════════════════════ Buttons ═══════════════════════
-   One canonical button system for every tool. Variants:
-     .btn-primary  filled accent (main action)
-     .btn-secondary  filled surface (neutral)
+   One canonical button system for every tool. All variants use the
+   Tokyo Night tinted style — a translucent wash of the variant colour
+   with matching text — so no button reads as a solid foreign slab:
+     .btn-primary  accent tint (main action)
+     .btn-secondary  surface (neutral)
      .btn-ghost    outlined, quiet
-     .btn-danger   destructive
-     .btn-success  confirming
+     .btn-danger   destructive (red tint)
+     .btn-success  confirming (green tint)
    Modifier: .btn-sm
    ──────────────────────────────────────────────────── */
 
@@ -149,8 +151,8 @@
 .btn:disabled,
 .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
 
-.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
-.btn-primary:hover { background: rgba(var(--accent-rgb), .82); border-color: rgba(var(--accent-rgb), .82); color: var(--bg); }
+.btn-primary { background: rgba(var(--accent-rgb), .15); border-color: rgba(var(--accent-rgb), .40); color: var(--accent); }
+.btn-primary:hover { background: rgba(var(--accent-rgb), .25); border-color: var(--accent); color: var(--accent); }
 
 .btn-secondary { background: var(--surface2); border-color: var(--border); color: var(--text); }
 .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
@@ -161,8 +163,8 @@
 .btn-danger { background: transparent; border-color: rgba(var(--red-rgb), .45); color: var(--red); }
 .btn-danger:hover { background: rgba(var(--red-rgb), .12); border-color: var(--red); color: var(--red); }
 
-.btn-success { background: var(--green); border-color: var(--green); color: var(--bg); }
-.btn-success:hover { background: rgba(var(--green-rgb), .82); border-color: rgba(var(--green-rgb), .82); color: var(--bg); }
+.btn-success { background: rgba(var(--green-rgb), .15); border-color: rgba(var(--green-rgb), .40); color: var(--green); }
+.btn-success:hover { background: rgba(var(--green-rgb), .25); border-color: var(--green); color: var(--green); }
 
 .btn-sm { padding: 4px 9px; font-size: 11px; border-radius: 5px; }
 
