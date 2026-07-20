@@ -50,8 +50,8 @@
     transition: border-color .12s, background .12s, color .12s;
   }
   .tbtn:hover { border-color: var(--accent); }
-  .tbtn.active { border-color: var(--accent); color: var(--accent); background: rgba(102,217,239,0.08); }
-  [data-theme="light"] .tbtn.active { background: rgba(5,151,167,0.08); }
+  .tbtn.active { border-color: var(--accent); color: var(--accent); background: rgba(var(--accent-rgb),0.08); }
+  [data-theme="light"] .tbtn.active { background: rgba(var(--accent-rgb),0.08); }
   .tbtn:disabled { opacity: .4; cursor: default; }
   .tbtn:disabled:hover { border-color: var(--border); }
   .toolbar select, .toolbar input[type="number"] {
@@ -150,7 +150,7 @@
     position: absolute;
     font-family: var(--font-mono);
     font-size: 11px;
-    color: #e8e8e0;
+    color: var(--text);
     text-shadow: 0 1px 2px #000, 0 0 4px #000;
     pointer-events: none;
     line-height: 1.5;
@@ -258,7 +258,7 @@
   .tag-toolbar input:focus { outline: none; border-color: var(--accent); }
   table.tagtbl { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
   table.tagtbl td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-all; }
-  table.tagtbl tr:hover td { background: rgba(255,255,255,0.03); }
+  table.tagtbl tr:hover td { background: rgba(var(--text-rgb),0.03); }
   [data-theme="light"] table.tagtbl tr:hover td { background: rgba(0,0,0,0.03); }
   .t-tag { color: var(--accent); white-space: nowrap; }
   .t-vr { color: var(--red); }
@@ -328,20 +328,7 @@
   .rule-item .r-val { flex: 1; word-break: break-all; color: var(--text); }
   .rule-item .r-x { cursor: pointer; color: var(--muted); }
   .rule-item .r-x:hover { color: var(--red); }
-  .btn-primary {
-    background: var(--green);
-    color: #1e1f1a;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: var(--font-sans);
-  }
   [data-theme="light"] .btn-primary { color: #fff; }
-  .btn-primary:hover { filter: brightness(1.1); }
-  .btn-primary:disabled { opacity: .4; cursor: default; }
   .hint { color: var(--muted); font-size: 10.5px; line-height: 1.5; }
   .morph-log {
     font-family: var(--font-mono);
@@ -396,9 +383,9 @@
     font-weight: 700;
     white-space: nowrap;
   }
-  .cat-image { background: rgba(166,226,46,0.15); color: var(--green); }
-  .cat-video { background: rgba(174,129,255,0.15); color: var(--accent2); }
-  .cat-pdf   { background: rgba(253,151,31,0.15); color: var(--orange); }
+  .cat-image { background: rgba(var(--green-rgb),0.15); color: var(--green); }
+  .cat-video { background: rgba(var(--accent2-rgb),0.15); color: var(--accent2); }
+  .cat-pdf   { background: rgba(var(--orange-rgb),0.15); color: var(--orange); }
   .cat-other { background: rgba(117,113,94,0.2); color: var(--muted); }
   .x-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
   .x-close:hover { color: var(--text); }
@@ -409,7 +396,7 @@
     position: fixed; inset: 10px;
     border: 2px dashed var(--accent);
     border-radius: 12px;
-    background: rgba(102,217,239,0.06);
+    background: rgba(var(--accent-rgb),0.06);
     color: var(--accent);
     display: flex;
     align-items: center;
@@ -1930,7 +1917,7 @@ function drawDicomOverlays(f, info){
         const ix = x + oc0 - 1;
         if (ix<0||ix>=info.cols) continue;
         const o=(iy*info.cols+ix)*4;
-        d[o]=102; d[o+1]=217; d[o+2]=239;
+        d[o]=122; d[o+1]=162; d[o+2]=247;
       }
     }
     offctx.putImageData(oimg,0,0);
@@ -2099,7 +2086,7 @@ function screenToImage(sx, sy, f){
 function drawMeasures(f){
   if (!state.measures.length) return;
   const ctx = frameContext(f, state.frame);
-  actx.strokeStyle = '#a6e22e'; actx.fillStyle = '#a6e22e';
+  actx.strokeStyle = '#9ece6a'; actx.fillStyle = '#9ece6a';
   actx.lineWidth = 1.5; actx.font = '12px monospace';
   for (const m of state.measures){
     const [x1,y1] = imageToScreen(m.x1, m.y1, f);
@@ -2534,7 +2521,7 @@ async function drawThumb(f, cv){
     const w=info.cols*scale, h=info.rows*scale;
     tc.drawImage(oc, (cv.width-w)/2, (cv.height-h)/2, w, h);
   } catch(e){
-    tc.fillStyle='#75715e'; tc.font='11px monospace'; tc.textAlign='center';
+    tc.fillStyle='#565f89'; tc.font='11px monospace'; tc.textAlign='center';
     const cat = f.sopInfo ? f.sopInfo.cat : '?';
     tc.fillText(cat==='pdf'?'📄 PDF':cat==='video'?'🎞 video':cat==='other'?'📋 non-image':'(no preview)', cv.width/2, cv.height/2);
   }

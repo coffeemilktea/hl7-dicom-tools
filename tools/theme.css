@@ -1,59 +1,95 @@
-/* HL7 Tools — shared Monokai theme
-   Used by: msgparser.html, dicom-generator.html, hl7-diff.html
-   ─────────────────────────────────────────────────────────── */
+/* HL7 / DICOM Tools — shared Tokyo Night theme
+   Loaded by every tool before its own <style> block.
+   Tools should reference the tokens below rather than hardcoding colours, so
+   both themes stay consistent and light mode needs no per-tool overrides.
 
-/* ── Dark mode (default — Monokai) ── */
+   The *-rgb tokens carry bare channel triplets for alpha tints:
+       background: rgba(var(--accent-rgb), .15);
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* ── Dark (default) — Tokyo Night ── */
 :root {
-  --bg:       #272822;
-  --surface:  #1e1f1a;
-  --surface2: #3e3d32;
-  --border:   #49483e;
-  --accent:   #66d9ef;
-  --accent2:  #ae81ff;
-  --green:    #a6e22e;
-  --yellow:   #e6db74;
-  --red:      #f92672;
-  --orange:   #fd971f;
-  --text:     #f8f8f2;
-  --muted:    #75715e;
+  --bg:        #1a1b26;
+  --surface:   #16161e;
+  --surface2:  #292e42;
+  --border:    #3b4261;
+
+  --accent:    #7aa2f7;  /* blue    */
+  --accent2:   #bb9af7;  /* magenta */
+  --cyan:      #7dcfff;
+  --green:     #9ece6a;
+  --yellow:    #e0af68;
+  --orange:    #ff9e64;
+  --red:       #f7768e;
+  --purple:    #bb9af7;
+  --pink:      #f7768e;
+
+  --text:      #c0caf5;
+  --muted:     #565f89;
+  --input-bg:  #101014;
+
+  /* Channel triplets for alpha tints */
+  --bg-rgb:        26, 27, 38;
+  --surface2-rgb:  41, 46, 66;
+  --border-rgb:    59, 66, 97;
+  --accent-rgb:   122,162,247;
+  --accent2-rgb:  187,154,247;
+  --cyan-rgb:     125,207,255;
+  --green-rgb:    158,206,106;
+  --yellow-rgb:   224,175,104;
+  --orange-rgb:   255,158,100;
+  --red-rgb:      247,118,142;
+  --purple-rgb:   187,154,247;
+  --text-rgb:     192,202,245;
+  --muted-rgb:     86, 95,137;
+
+  /* Aliases kept for tools that grew their own names */
+  --fg:        var(--text);
+  --comment:   var(--muted);
+
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
   --font-sans: system-ui, -apple-system, sans-serif;
-  --radius:   8px;
-
-  /* Aliases — used by dicom-generator.html */
-  --fg:       #f8f8f2;
-  --comment:  #75715e;
-  --input-bg: #15160f;
-  --cyan:     #66d9ef;
-  --pink:     #f92672;
-  --purple:   #ae81ff;
+  --radius:    8px;
 }
 
-/* ── Light mode (Monokai-inspired warm paper) ── */
+/* ── Light — Tokyo Night Day ── */
 [data-theme="light"] {
-  --bg:       #f9f8f5;
-  --surface:  #ffffff;
-  --surface2: #f0efe9;
-  --border:   #d6d5cc;
-  --accent:   #0597a7;
-  --accent2:  #7c3aed;
-  --green:    #5c8400;
-  --yellow:   #866e00;
-  --red:      #d4006e;
-  --orange:   #c96900;
-  --text:     #272822;
-  --muted:    #75715e;
+  --bg:        #e1e2e7;
+  --surface:   #f4f4f8;
+  --surface2:  #d4d6e1;
+  --border:    #a8adc9;
 
-  /* Aliases for dicom-generator.html */
-  --fg:       #272822;
-  --comment:  #75715e;
-  --input-bg: #f0efe9;
-  --cyan:     #0597a7;
-  --pink:     #d4006e;
-  --purple:   #7c3aed;
+  --accent:    #2e7de9;
+  --accent2:   #9854f1;
+  --cyan:      #007197;
+  --green:     #587539;
+  --yellow:    #8c6c3e;
+  --orange:    #b15c00;
+  --red:       #f52a65;
+  --purple:    #9854f1;
+  --pink:      #f52a65;
+
+  --text:      #343b58;
+  --muted:     #6a739e;
+  --input-bg:  #ffffff;
+
+  --bg-rgb:       225,226,231;
+  --surface2-rgb: 212,214,225;
+  --border-rgb:   168,173,201;
+  --accent-rgb:    46,125,233;
+  --accent2-rgb:  152, 84,241;
+  --cyan-rgb:       0,113,151;
+  --green-rgb:     88,117, 57;
+  --yellow-rgb:   140,108, 62;
+  --orange-rgb:   177, 92,  0;
+  --red-rgb:      245, 42,101;
+  --purple-rgb:   152, 84,241;
+  --text-rgb:      52, 59, 88;
+  --muted-rgb:    106,115,158;
 }
 
-/* ── Shared: App Header ── */
+/* ═══════════════════════ Shared chrome ═══════════════════════ */
+
 .app-header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -66,11 +102,7 @@
   z-index: 100;
 }
 
-/* ── Shared: Nav Links ── */
-.nav-links {
-  display: flex;
-  gap: 8px;
-}
+.nav-links { display: flex; gap: 8px; }
 .nav-links a {
   color: var(--muted);
   font-size: 12px;
@@ -81,12 +113,60 @@
   transition: color .15s, border-color .15s, background .15s;
   white-space: nowrap;
 }
-.nav-links a:hover {
-  color: var(--text);
-  border-color: var(--accent);
-}
+.nav-links a:hover { color: var(--text); border-color: var(--accent); }
 
-/* ── Shared: Theme Toggle Button ── */
+/* ═══════════════════════ Buttons ═══════════════════════
+   One canonical button system for every tool. Variants:
+     .btn-primary  filled accent (main action)
+     .btn-secondary  filled surface (neutral)
+     .btn-ghost    outlined, quiet
+     .btn-danger   destructive
+     .btn-success  confirming
+   Modifier: .btn-sm
+   ──────────────────────────────────────────────────── */
+
+.btn {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  user-select: none;
+  transition: background .15s, color .15s, border-color .15s, opacity .15s;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled,
+.btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.btn-primary:hover { background: rgba(var(--accent-rgb), .82); border-color: rgba(var(--accent-rgb), .82); color: var(--bg); }
+
+.btn-secondary { background: var(--surface2); border-color: var(--border); color: var(--text); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+.btn-ghost:hover { color: var(--accent); border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
+
+.btn-danger { background: transparent; border-color: rgba(var(--red-rgb), .45); color: var(--red); }
+.btn-danger:hover { background: rgba(var(--red-rgb), .12); border-color: var(--red); color: var(--red); }
+
+.btn-success { background: var(--green); border-color: var(--green); color: var(--bg); }
+.btn-success:hover { background: rgba(var(--green-rgb), .82); border-color: rgba(var(--green-rgb), .82); color: var(--bg); }
+
+.btn-sm { padding: 4px 9px; font-size: 11px; border-radius: 5px; }
+
+/* ── Theme toggle ── */
 .btn-theme {
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -105,5 +185,23 @@
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
-.btn-theme:hover { color: var(--text); border-color: var(--muted); }
-.btn-theme:active { transform: scale(0.98); }
+.btn-theme:hover { color: var(--text); border-color: var(--accent); }
+.btn-theme:active { transform: translateY(1px); }
+
+/* ── Focus ring (keyboard accessibility, both themes) ── */
+.btn:focus-visible,
+.btn-theme:focus-visible,
+.nav-links a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Scrollbars ── */
+* { scrollbar-color: var(--border) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }

@@ -10,28 +10,28 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --row-diff-bg: rgba(230, 219, 116, 0.08);
-      --row-diff-border: rgba(230, 219, 116, 0.3);
-      --row-miss-bg: rgba(249, 38, 114, 0.08);
-      --row-miss-border: rgba(249, 38, 114, 0.3);
-      --cell-miss-bg: rgba(249, 38, 114, 0.15);
-      --cell-present-bg: rgba(166, 226, 46, 0.12);
+      --row-diff-bg: rgba(var(--yellow-rgb),0.08);
+      --row-diff-border: rgba(var(--yellow-rgb),0.3);
+      --row-miss-bg: rgba(var(--red-rgb),0.08);
+      --row-miss-border: rgba(var(--red-rgb),0.3);
+      --cell-miss-bg: rgba(var(--red-rgb),0.15);
+      --cell-present-bg: rgba(var(--green-rgb),0.12);
     }
 
     /* ── Light mode overrides for hl7-diff ── */
     [data-theme="light"] {
-      --row-diff-bg:    rgba(134,110,0,0.07);
-      --row-diff-border:rgba(134,110,0,0.25);
-      --row-miss-bg:    rgba(212,0,110,0.06);
-      --row-miss-border:rgba(212,0,110,0.25);
-      --cell-miss-bg:   rgba(212,0,110,0.10);
-      --cell-present-bg:rgba(92,132,0,0.10);
+      --row-diff-bg:    rgba(var(--yellow-rgb),0.07);
+      --row-diff-border:rgba(var(--yellow-rgb),0.25);
+      --row-miss-bg:    rgba(var(--red-rgb),0.06);
+      --row-miss-border:rgba(var(--red-rgb),0.25);
+      --cell-miss-bg:   rgba(var(--red-rgb),0.10);
+      --cell-present-bg:rgba(var(--green-rgb),0.10);
     }
     [data-theme="light"] .segment-block { background: var(--surface); border-color: var(--border); }
     [data-theme="light"] .seg-header { background: var(--surface2); border-bottom-color: var(--border); }
     [data-theme="light"] .seg-name { color: var(--accent); }
     [data-theme="light"] thead th { background: var(--bg); }
-    [data-theme="light"] td { border-bottom-color: rgba(214,213,204,0.5); }
+    [data-theme="light"] td { border-bottom-color: rgba(var(--border-rgb),0.5); }
     [data-theme="light"] .seg-absent { color: var(--muted); }
     [data-theme="light"] textarea { background: var(--surface); color: var(--text); border-color: var(--border); }
     [data-theme="light"] textarea:focus { border-color: var(--accent); }
@@ -44,12 +44,12 @@
     [data-theme="light"] .stat-value.c-red { color: var(--red); }
     [data-theme="light"] .toggle { color: var(--muted); }
     [data-theme="light"] .toggle:hover { color: var(--text); }
-    [data-theme="light"] .seg-ok     { background: rgba(92,132,0,.12);    color: var(--green); }
-    [data-theme="light"] .seg-diff   { background: rgba(134,110,0,.12);   color: var(--yellow); }
-    [data-theme="light"] .seg-only-a { background: rgba(5,151,167,.10);   color: var(--accent); }
-    [data-theme="light"] .seg-only-b { background: rgba(201,105,0,.12);   color: var(--orange); }
-    [data-theme="light"] .seg-missing{ background: rgba(212,0,110,.10);   color: var(--red); }
-    [data-theme="light"] .cell-missing { background: rgba(212,0,110,0.08); color: var(--red); }
+    [data-theme="light"] .seg-ok     { background: rgba(var(--green-rgb),.12);    color: var(--green); }
+    [data-theme="light"] .seg-diff   { background: rgba(var(--yellow-rgb),.12);   color: var(--yellow); }
+    [data-theme="light"] .seg-only-a { background: rgba(var(--accent-rgb),.10);   color: var(--accent); }
+    [data-theme="light"] .seg-only-b { background: rgba(var(--orange-rgb),.12);   color: var(--orange); }
+    [data-theme="light"] .seg-missing{ background: rgba(var(--red-rgb),.10);   color: var(--red); }
+    [data-theme="light"] .cell-missing { background: rgba(var(--red-rgb),0.08); color: var(--red); }
     [data-theme="light"] .row-diff { background: var(--row-diff-bg); }
     [data-theme="light"] .row-miss  { background: var(--row-miss-bg); }
     [data-theme="light"] .header-icon { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
@@ -64,7 +64,7 @@
     /* ── Header ── */
     .header-icon {
       width: 36px; height: 36px;
-      background: linear-gradient(135deg, #66d9ef, #ae81ff);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
       border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
       font-size: 18px;
@@ -127,17 +127,6 @@
       flex-wrap: wrap;
     }
 
-    .btn {
-      padding: 9px 22px;
-      border: none; border-radius: 6px;
-      font-size: 0.875rem; font-weight: 600;
-      cursor: pointer; transition: opacity .15s, transform .1s;
-      user-select: none;
-    }
-    .btn:active { transform: scale(0.97); }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-    .btn:hover { opacity: .85; }
 
     .divider { width: 1px; height: 24px; background: var(--border); }
 
@@ -207,11 +196,11 @@
       text-transform: uppercase; letter-spacing: .06em;
       font-family: var(--font-sans);
     }
-    .seg-ok     { background: rgba(166,226,46,.15); color: var(--green); }
-    .seg-diff   { background: rgba(230,219,116,.15);  color: var(--yellow); }
-    .seg-only-a { background: rgba(102,217,239,.15);  color: var(--accent); }
-    .seg-only-b { background: rgba(253,151,31,.15);  color: var(--orange); }
-    .seg-missing { background: rgba(249,38,114,.15);  color: var(--red); }
+    .seg-ok     { background: rgba(var(--green-rgb),.15); color: var(--green); }
+    .seg-diff   { background: rgba(var(--yellow-rgb),.15);  color: var(--yellow); }
+    .seg-only-a { background: rgba(var(--accent-rgb),.15);  color: var(--accent); }
+    .seg-only-b { background: rgba(var(--orange-rgb),.15);  color: var(--orange); }
+    .seg-missing { background: rgba(var(--red-rgb),.15);  color: var(--red); }
 
     /* ── Field table ── */
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -230,7 +219,7 @@
 
     td {
       padding: 6px 12px;
-      border-bottom: 1px solid rgba(73,72,62,.5);
+      border-bottom: 1px solid rgba(var(--border-rgb),.5);
       font-family: var(--font-mono);
       font-size: 0.78rem;
       vertical-align: top;
@@ -373,11 +362,11 @@
   <div id="summary" class="summary" style="display:none"></div>
   <div id="legend"  class="legend"  style="display:none">
     <span>Legend:</span>
-    <span class="legend-item"><span class="legend-dot" style="background:rgba(166,226,46,.4)"></span> Identical</span>
-    <span class="legend-item"><span class="legend-dot" style="background:rgba(230,219,116,.4)"></span> Different value</span>
-    <span class="legend-item"><span class="legend-dot" style="background:rgba(249,38,114,.4)"></span> Missing in one message</span>
-    <span class="legend-item"><span class="legend-dot" style="background:rgba(102,217,239,.4)"></span> Segment only in A</span>
-    <span class="legend-item"><span class="legend-dot" style="background:rgba(253,151,31,.4)"></span> Segment only in B</span>
+    <span class="legend-item"><span class="legend-dot" style="background:rgba(var(--green-rgb),.4)"></span> Identical</span>
+    <span class="legend-item"><span class="legend-dot" style="background:rgba(var(--yellow-rgb),.4)"></span> Different value</span>
+    <span class="legend-item"><span class="legend-dot" style="background:rgba(var(--red-rgb),.4)"></span> Missing in one message</span>
+    <span class="legend-item"><span class="legend-dot" style="background:rgba(var(--accent-rgb),.4)"></span> Segment only in A</span>
+    <span class="legend-item"><span class="legend-dot" style="background:rgba(var(--orange-rgb),.4)"></span> Segment only in B</span>
   </div>
   <div id="results"></div>
 </div>
