@@ -4,19 +4,28 @@
     <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#1a1b26">
     <link rel="stylesheet" href="{{ '/assets/css/custom.css' | relative_url }}">
+    <!-- Shared theme controller: applies the saved theme before paint and wires #btn-theme -->
+    <script src="{{ '/tools/theme.js' | relative_url }}"></script>
     {% seo %}
   </head>
 
   <body>
     <header>
-      <div class="container">
-        <a href="{{ '/' | relative_url }}" class="site-title-link">
-          <h1>{{ site.title | default: site.github.repository_name }}</h1>
-        </a>
-        <p class="site-tagline">{{ site.description | default: site.github.project_tagline }}</p>
+      <div class="container header-top">
+        <div>
+          <a href="{{ '/' | relative_url }}" class="site-title-link">
+            <h1>{{ site.title | default: site.github.repository_name }}</h1>
+          </a>
+          <p class="site-tagline">{{ site.description | default: site.github.project_tagline }}</p>
+        </div>
         <nav class="site-nav">
-          <a href="{{ site.github.repository_url }}" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+          <a href="{{ site.github.repository_url }}" class="btn">View on GitHub</a>
+          <button class="btn-theme" id="btn-theme" type="button">
+            <span class="theme-icon">☀️</span>
+            <span class="theme-label">Light</span>
+          </button>
         </nav>
       </div>
     </header>
