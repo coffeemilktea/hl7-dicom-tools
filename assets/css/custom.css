@@ -28,8 +28,14 @@
   --text-rgb:    192,202,245;
 
   --radius:    12px;
+  --radius-sm:  6px;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Modern chrome — mirrors tools/theme.css */
+  --shadow-1: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-2: 0 8px 24px -8px rgba(0,0,0,.55);
+  --header-bg: rgba(22, 22, 30, .82);
 }
 
 /* ── Light — Tokyo Night Day ── */
@@ -56,6 +62,10 @@
   --cyan-rgb:      0,113,151;
   --green-rgb:    88,117, 57;
   --text-rgb:     52, 59, 88;
+
+  --shadow-1: 0 1px 2px rgba(52,59,88,.12);
+  --shadow-2: 0 8px 24px -8px rgba(52,59,88,.28);
+  --header-bg: rgba(244, 244, 248, .82);
 }
 
 /* ── Reset & base ── */
@@ -94,11 +104,28 @@ a { color: var(--accent); }
   padding: 0 24px;
 }
 
-/* ── Header ── */
+/* ── Header — same translucent chrome the tools wear ── */
 header {
-  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--header-bg);
+  backdrop-filter: saturate(160%) blur(12px);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
   border-bottom: 1px solid var(--border);
-  padding: 26px 0 22px;
+  padding: 22px 0 20px;
+}
+
+header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(var(--accent-rgb), .55),
+    rgba(var(--accent2-rgb), .45),
+    transparent);
 }
 
 .header-top {
@@ -139,7 +166,7 @@ header {
   gap: 6px;
   padding: 6px 14px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--muted);
   font-size: 0.8rem;
@@ -174,8 +201,8 @@ header {
   white-space: nowrap;
   transition: color .15s, border-color .15s, background .15s;
 }
-.btn-theme:hover { color: var(--text); border-color: var(--accent); }
-.btn-theme:active { transform: translateY(1px); }
+.btn-theme:hover { color: var(--text); border-color: var(--accent); box-shadow: var(--shadow-1); }
+.btn-theme:active { transform: translateY(1px); box-shadow: none; }
 
 /* ── Main content ── */
 #main_content { padding: 44px 0 72px; }
@@ -231,17 +258,23 @@ header {
 
 .tool-card:hover {
   border-color: rgba(var(--accent-rgb), .55);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);
+  box-shadow: var(--shadow-2);
   transform: translateY(-2px);
 }
 
-[data-theme="light"] .tool-card:hover {
-  box-shadow: 0 10px 30px rgba(var(--text-rgb), .12);
-}
-
+/* Gradient tile, matching each tool's own .app-mark */
 .tool-card-icon {
-  font-size: 1.6rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: var(--shadow-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
   line-height: 1;
+  color: #fff;
   margin-bottom: 14px;
 }
 
@@ -285,7 +318,7 @@ header {
   border: 1px solid rgba(var(--accent-rgb), .40);
   color: var(--accent) !important;
   padding: 7px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   text-decoration: none !important;
   font-size: 0.82rem;
   font-weight: 600;

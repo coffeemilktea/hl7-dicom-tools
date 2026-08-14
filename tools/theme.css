@@ -50,6 +50,13 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
   --font-sans: system-ui, -apple-system, sans-serif;
   --radius:    8px;
+
+  /* Modern chrome: elevation + translucency */
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-2: 0 8px 24px -8px rgba(0,0,0,.55);
+  --header-bg: rgba(22, 22, 30, .82);
 }
 
 /* ── Light — Tokyo Night Day ── */
@@ -86,34 +93,91 @@
   --purple-rgb:   152, 84,241;
   --text-rgb:      52, 59, 88;
   --muted-rgb:    106,115,158;
+
+  --shadow-1: 0 1px 2px rgba(52,59,88,.12);
+  --shadow-2: 0 8px 24px -8px rgba(52,59,88,.28);
+  --header-bg: rgba(244, 244, 248, .82);
 }
 
 /* ═══════════════════════ Shared chrome ═══════════════════════ */
 
+/* Every tool wears the same header: a gradient mark, a title/subtitle stack,
+   then tool-specific controls pushed right inside .app-actions.
+   Tools are standalone — the header carries no links to other tools. */
+
 .app-header {
-  background: var(--surface);
+  background: var(--header-bg);
+  backdrop-filter: saturate(160%) blur(12px);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
   border-bottom: 1px solid var(--border);
-  padding: 12px 24px;
+  padding: 10px 20px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
-.nav-links { display: flex; gap: 8px; }
-.nav-links a {
-  color: var(--muted);
-  font-size: 12px;
-  text-decoration: none;
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  transition: color .15s, border-color .15s, background .15s;
+/* Hairline of accent light along the top edge */
+.app-header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(var(--accent-rgb), .55),
+    rgba(var(--accent2-rgb), .45),
+    transparent);
+}
+
+.app-mark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: var(--shadow-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  color: #fff;               /* for non-emoji glyph marks on the gradient */
+}
+
+.app-titles h1 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: var(--text);
   white-space: nowrap;
 }
-.nav-links a:hover { color: var(--text); border-color: var(--accent); }
+.app-titles p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+/* Controls the tool owns — always right-aligned, wrapping on narrow screens */
+.app-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .app-header { padding: 10px 14px; }
+  .app-titles p { display: none; }
+}
 
 /* ═══════════════════════ Buttons ═══════════════════════
    One canonical button system for every tool. All variants use the
@@ -133,7 +197,7 @@
   font-weight: 600;
   line-height: 1;
   padding: 7px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface2);
   color: var(--text);
@@ -146,8 +210,8 @@
   user-select: none;
   transition: background .15s, color .15s, border-color .15s, opacity .15s;
 }
-.btn:hover { border-color: var(--accent); color: var(--accent); }
-.btn:active { transform: translateY(1px); }
+.btn:hover { border-color: var(--accent); color: var(--accent); box-shadow: var(--shadow-1); }
+.btn:active { transform: translateY(1px); box-shadow: none; }
 .btn:disabled,
 .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
 
@@ -187,13 +251,33 @@
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
-.btn-theme:hover { color: var(--text); border-color: var(--accent); }
-.btn-theme:active { transform: translateY(1px); }
+.btn-theme:hover { color: var(--text); border-color: var(--accent); box-shadow: var(--shadow-1); }
+.btn-theme:active { transform: translateY(1px); box-shadow: none; }
+
+/* ── Header chips ── */
+.app-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  color: var(--accent2);
+  background: rgba(var(--accent2-rgb), .15);
+  border: 1px solid rgba(var(--accent2-rgb), .35);
+  white-space: nowrap;
+}
+
+.app-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+@media (max-width: 900px) { .app-hint { display: none; } }
 
 /* ── Focus ring (keyboard accessibility, both themes) ── */
 .btn:focus-visible,
 .btn-theme:focus-visible,
-.nav-links a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {

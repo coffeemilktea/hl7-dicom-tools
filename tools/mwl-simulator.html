@@ -19,17 +19,12 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: var(--ui); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Header */
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 9px 16px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
-    header h1 { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.03em; white-space: nowrap; }
+    /* Header chrome comes from theme.css (.app-header / .app-mark / .app-titles) */
     .ae-row { display: flex; align-items: center; gap: 7px; font-size: 12px; }
     .ae-row label { color: var(--text-dim); white-space: nowrap; }
-    .ae-row input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 4px 7px; border-radius: 4px; font-family: var(--mono); font-size: 12px; width: 120px; }
+    .ae-row input { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 4px 7px; border-radius: var(--radius-sm); font-family: var(--mono); font-size: 12px; width: 120px; }
     .ae-arrow { color: var(--text-dim); }
-    .nav-links { display: flex; gap: 6px; margin-left: auto; }
-    .nav-links a { color: var(--text-dim); font-size: 11px; text-decoration: none; padding: 4px 9px; border: 1px solid var(--border); border-radius: 5px; transition: color .15s, border-color .15s; white-space: nowrap; }
-    .nav-links a:hover { color: var(--text); border-color: var(--accent); }
-    .mode-toggle { display: flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; font-size: 11px; font-weight: 700; }
+    .mode-toggle { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; font-size: 11px; font-weight: 700; }
     .mode-btn { padding: 5px 12px; cursor: pointer; color: var(--text-dim); background: var(--surface2); border: none; letter-spacing: 0.04em; transition: all 0.15s; }
     .mode-btn.active-local { background: var(--accent-dim); color: var(--accent); }
     .mode-btn.active-ext { background: rgba(var(--green-rgb),0.2); color: var(--green); }
@@ -209,26 +204,25 @@
 </head>
 <body>
 
-<header>
-  <h1>DICOM Modality Worklist Simulator</h1>
-  <div class="ae-row">
-    <label>SCU AE:</label>
-    <input id="scuAE" value="MY_MODALITY" maxlength="16">
-    <span class="ae-arrow">→</span>
-    <label>SCP AE:</label>
-    <input id="scpAE" value="MWL_SCP" maxlength="16" oninput="buildExtUrl()">
+<header class="app-header">
+  <span class="app-mark">📡</span>
+  <div class="app-titles">
+    <h1>DICOM MWL Simulator</h1>
+    <p>Query a simulated or external Modality Worklist over C-FIND</p>
   </div>
-  <div class="nav-links">
-    <a href="msgparser.html">HL7 Parser</a>
-    <a href="dicom-viewer.html">DICOM Viewer</a>
-    <a href="diff-checker.html">Diff Checker</a>
-    <a href="dicom-generator.html">DICOM Gen</a>
-    <a href="dicom-hl7-order.html">DICOM→HL7</a>
-    <button id="btn-theme" class="btn-theme" style="margin-left:4px"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
-  </div>
-  <div class="mode-toggle">
-    <button class="mode-btn active-local" id="btn-local" onclick="setMode('local')">◉ SIMULATED</button>
-    <button class="mode-btn" id="btn-ext" onclick="setMode('external')">⇌ EXTERNAL</button>
+  <div class="app-actions">
+    <div class="ae-row">
+      <label>SCU AE:</label>
+      <input id="scuAE" value="MY_MODALITY" maxlength="16">
+      <span class="ae-arrow">→</span>
+      <label>SCP AE:</label>
+      <input id="scpAE" value="MWL_SCP" maxlength="16" oninput="buildExtUrl()">
+    </div>
+    <div class="mode-toggle">
+      <button class="mode-btn active-local" id="btn-local" onclick="setMode('local')">◉ SIMULATED</button>
+      <button class="mode-btn" id="btn-ext" onclick="setMode('external')">⇌ EXTERNAL</button>
+    </div>
+    <button id="btn-theme" class="btn-theme"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
   </div>
 </header>
 

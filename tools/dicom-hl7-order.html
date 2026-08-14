@@ -375,21 +375,17 @@
 <body>
 
 <header class="app-header">
-  <div>
-    <h1 style="font-size:17px;font-weight:700;letter-spacing:-0.3px;color:var(--text);">DICOM → HL7 Order</h1>
-    <p style="font-size:12px;color:var(--muted);margin-top:2px;">Read DICOM tags and generate an HL7 ORM^O01 radiology order — no server, no uploads</p>
+  <span class="app-mark">🔗</span>
+  <div class="app-titles">
+    <h1>DICOM → HL7 Order</h1>
+    <p>Read DICOM tags and generate an HL7 ORM^O01 radiology order — no server, no uploads</p>
   </div>
-  <div class="nav-links" style="margin-left:auto;">
-    <a href="msgparser.html">HL7 Parser</a>
-    <a href="dicom-viewer.html">DICOM Viewer</a>
-    <a href="diff-checker.html">Diff Checker</a>
-    <a href="dicom-generator.html">DICOM Gen</a>
-    <a href="mwl-simulator.html">MWL Sim</a>
+  <div class="app-actions">
+    <button class="btn-theme" id="btn-theme">
+      <span class="theme-icon">☀️</span>
+      <span class="theme-label">Light</span>
+    </button>
   </div>
-  <button class="btn-theme" id="btn-theme">
-    <span class="theme-icon">☀️</span>
-    <span class="theme-label">Light</span>
-  </button>
 </header>
 
 <div class="main-content">

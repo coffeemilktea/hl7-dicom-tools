@@ -19,9 +19,7 @@
     flex-direction: column;
     overflow: hidden;
   }
-  .app-header h1 { font-size: 15px; margin: 0; font-family: var(--font-mono); font-weight: 600; }
-  .app-header h1 .hl { color: var(--accent); }
-  .app-header .spacer { flex: 1; }
+  /* Header comes entirely from theme.css (.app-header / .app-mark / .app-titles) */
 
   /* ── Toolbar ── */
   .toolbar {
@@ -419,14 +417,14 @@
 <body>
 
 <header class="app-header">
-  <h1>🩻 DICOM <span class="hl">Viewer</span> &amp; Tag Morph</h1>
-  <span class="spacer"></span>
-  <nav class="nav-links">
-    <a href="../index.html">← All Tools</a>
-    <a href="dicom-generator.html">DICOM Toolbox</a>
-    <a href="dicom-hl7-order.html">DICOM → HL7</a>
-  </nav>
-  <button id="btn-theme" class="btn-theme"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
+  <span class="app-mark">🩻</span>
+  <div class="app-titles">
+    <h1>DICOM Viewer &amp; Tag Morph</h1>
+    <p>Open, view and rewrite DICOM tags locally — no server, no uploads</p>
+  </div>
+  <div class="app-actions">
+    <button id="btn-theme" class="btn-theme"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
+  </div>
 </header>
 
 <div class="toolbar">
