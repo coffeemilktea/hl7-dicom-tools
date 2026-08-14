@@ -50,7 +50,6 @@
     [data-theme="light"] .cell-missing { background: rgba(var(--red-rgb),0.08); color: var(--red); }
     [data-theme="light"] .row-diff { background: var(--row-diff-bg); }
     [data-theme="light"] .row-miss  { background: var(--row-miss-bg); }
-    [data-theme="light"] .header-icon { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
 
     body {
       font-family: var(--font-sans);
@@ -59,17 +58,7 @@
       min-height: 100vh;
     }
 
-    /* ── Header ── */
-    .header-icon {
-      width: 36px; height: 36px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-    }
-
-    header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
-    header p  { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
+    /* Header comes entirely from theme.css (.app-header / .app-mark / .app-titles) */
 
     /* ── Main layout ── */
     .main { max-width: 1500px; margin: 0 auto; padding: 24px; }
@@ -313,22 +302,17 @@
 <body>
 
 <header class="app-header">
-  <div class="header-icon">⇄</div>
-  <div>
+  <span class="app-mark">🔀</span>
+  <div class="app-titles">
     <h1>HL7 Diff Checker</h1>
     <p>Side-by-side HL7 v2.x message comparison</p>
   </div>
-  <div class="nav-links" style="margin-left:auto;">
-    <a href="msgparser.html">HL7 Parser</a>
-    <a href="dicom-viewer.html">DICOM Viewer</a>
-    <a href="dicom-generator.html">DICOM Gen</a>
-    <a href="mwl-simulator.html">MWL Sim</a>
-    <a href="dicom-hl7-order.html">DICOM→HL7</a>
+  <div class="app-actions">
+    <button class="btn-theme" id="btn-theme">
+      <span class="theme-icon">☀️</span>
+      <span class="theme-label">Light</span>
+    </button>
   </div>
-  <button class="btn-theme" id="btn-theme">
-    <span class="theme-icon">☀️</span>
-    <span class="theme-label">Light</span>
-  </button>
 </header>
 
 <div class="main">

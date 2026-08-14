@@ -107,29 +107,8 @@
       flex-direction: column;
     }
 
-    header h1 {
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-    }
-
-    header .badge {
-      background: var(--accent2);
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 7px;
-      border-radius: 20px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-
-    header .spacer { flex: 1; }
-
-    header .hint {
-      color: var(--muted);
-      font-size: 12px;
-    }
+    /* Header comes entirely from theme.css
+       (.app-header / .app-mark / .app-titles / .app-badge / .app-hint) */
 
     .main-grid {
       display: grid;
@@ -798,21 +777,19 @@
 <body>
 
 <header class="app-header">
-  <h1>HL7 Parser</h1>
-  <span class="badge">v2.x</span>
-  <span class="spacer"></span>
-  <span class="hint">Paste an HL7 message to begin</span>
-  <div class="nav-links">
-    <a href="dicom-viewer.html">DICOM Viewer</a>
-    <a href="dicom-generator.html">DICOM Gen</a>
-    <a href="diff-checker.html">Diff Checker</a>
-    <a href="mwl-simulator.html">MWL Sim</a>
-    <a href="dicom-hl7-order.html">DICOM→HL7</a>
+  <span class="app-mark">🧬</span>
+  <div class="app-titles">
+    <h1>HL7 Parser</h1>
+    <p>Segment, field and component breakdown — entirely in the browser</p>
   </div>
-  <button class="btn-theme" id="btn-theme">
-    <span class="theme-icon">☀️</span>
-    <span class="theme-label">Light</span>
-  </button>
+  <span class="app-badge">v2.x</span>
+  <div class="app-actions">
+    <span class="app-hint">Paste an HL7 message to begin</span>
+    <button class="btn-theme" id="btn-theme">
+      <span class="theme-icon">☀️</span>
+      <span class="theme-label">Light</span>
+    </button>
+  </div>
 </header>
 
 <div class="main-grid">

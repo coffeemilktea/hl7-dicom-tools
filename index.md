@@ -23,7 +23,7 @@ layout: default
     </li>
 
     <li class="tool-card">
-      <div class="tool-card-icon">🏥</div>
+      <div class="tool-card-icon">🧰</div>
       <h3>DICOM Toolbox</h3>
       <span class="tool-subtitle">Medical Imaging</span>
       <p>Create, configure, and generate valid DICOM files from scratch, then read them back with the built-in tag browser. Ideal for testing implementations and building synthetic datasets.</p>
@@ -31,7 +31,7 @@ layout: default
     </li>
 
     <li class="tool-card">
-      <div class="tool-card-icon">📋</div>
+      <div class="tool-card-icon">🧬</div>
       <h3>HL7 v2.x Parser</h3>
       <span class="tool-subtitle">Clinical Messaging</span>
       <p>Parse HL7 v2.x messages into a structured breakdown of segments, fields, components, and subcomponents — with highlighted and JSON views, plus FHIR resource support.</p>
@@ -39,7 +39,7 @@ layout: default
     </li>
 
     <li class="tool-card">
-      <div class="tool-card-icon">🔄</div>
+      <div class="tool-card-icon">🔀</div>
       <h3>HL7 Diff Checker</h3>
       <span class="tool-subtitle">Data Validation</span>
       <p>Compare two HL7 messages side by side, down to the field level. Quickly spot what changed between an inbound message and its transformed counterpart.</p>
