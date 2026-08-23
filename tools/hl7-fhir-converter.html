@@ -1,0 +1,2576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HL7 v2 &harr; FHIR Converter</title>
+  <meta name="description" content="Client-side converter between HL7 v2.5.1 messages (ADT, ORM, ORU, SIU, ACK) and FHIR R4 message Bundles. Field-level mapping trace, lossiness report and round-trip check. Nothing leaves your browser." />
+  <link rel="stylesheet" href="theme.css" />
+  <script src="theme.js"></script>
+  <style>
+/* Derived tints — everything else comes from the shared theme.css tokens,
+   which is what makes light mode work with no per-tool overrides. */
+:root {
+  --border-soft: rgba(var(--border-rgb), .55);
+  --mid:         rgba(var(--text-rgb), .72);
+  --green-bg:    rgba(var(--green-rgb), .10);
+  --green-line:  rgba(var(--green-rgb), .34);
+  --yellow-bg:   rgba(var(--yellow-rgb), .10);
+  --yellow-line: rgba(var(--yellow-rgb), .34);
+  --blue-bg:     rgba(var(--accent-rgb), .10);
+  --blue-line:   rgba(var(--accent-rgb), .34);
+  --red-bg:      rgba(var(--red-rgb), .10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-sans);
+  font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+::selection { background: rgba(var(--accent-rgb), .35); }
+a { color: var(--accent); }
+
+/* ── intro strip ── */
+.intro { padding: 20px 0 4px; }
+.intro p { color: var(--mid); font-size: 14.5px; max-width: 820px; }
+.privacy { display: inline-flex; gap: 7px; align-items: center; margin-top: 12px;
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--green);
+  background: var(--green-bg); border: 1px solid var(--green-line); border-radius: 999px; padding: 3px 11px; }
+.wrap { max-width: 1560px; margin: 0 auto; padding: 0 20px 80px; }
+.hl7 { color: var(--yellow); }
+.fhir { color: var(--green); }
+
+/* ── controls ── */
+.bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { font-family: var(--font-mono); font-size: 12px; padding: 7px 14px; cursor: pointer;
+  color: var(--mid); background: var(--surface); user-select: none; }
+.seg label + input + label { border-left: 1px solid var(--border); }
+.seg input:checked + label { background: var(--blue-bg); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* scoped so the shared header's .btn-theme keeps theme.css's styling */
+.wrap button, .wrap select { font-family: var(--font-mono); font-size: 12px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+  padding: 7px 12px; cursor: pointer; }
+.wrap button:hover, .wrap select:hover { border-color: var(--accent); color: var(--accent); }
+.wrap button:active { transform: translateY(1px); }
+.wrap button.primary { background: var(--blue-bg); border-color: var(--blue-line); color: var(--accent); }
+.spacer { flex: 1 1 auto; }
+.stat { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+.stat b { color: var(--mid); font-weight: 500; }
+
+/* ── panes ── */
+.panes { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 1100px) { .panes { grid-template-columns: 1fr 1fr; } }
+.pane { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  display: flex; flex-direction: column; height: clamp(380px, 64vh, 780px);
+  min-height: 0; overflow: hidden; }
+.pane-head { display: flex; align-items: center; gap: 10px; padding: 9px 13px;
+  border-bottom: 1px solid var(--border-soft); background: var(--surface2); }
+.pane-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--mid); }
+.pane-title.hl7 { color: var(--yellow); }
+.pane-title.fhir { color: var(--green); }
+.pane-head .mini { font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 5px; padding: 2px 8px; background: transparent; }
+.pane textarea, .pane pre {
+  flex: 1 1 auto; min-height: 0; width: 100%; border: 0; outline: 0; resize: none;
+  background: transparent; color: var(--text); font-family: var(--font-mono);
+  font-size: 12.5px; line-height: 1.7; padding: 14px; tab-size: 2;
+  white-space: pre; overflow: auto; }
+.pane textarea::placeholder { color: var(--muted); }
+.pane pre { margin: 0; }
+
+/* JSON / HL7 token colours */
+.t-key { color: var(--accent); }
+.t-str { color: var(--cyan); }
+.t-num { color: var(--purple); }
+.t-lit { color: var(--yellow); }
+.t-seg { color: var(--yellow); font-weight: 600; }
+.t-sep { color: var(--muted); }
+
+/* ── report tabs ── */
+.report { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border-soft); background: var(--surface2); }
+.report > input { position: absolute; opacity: 0; pointer-events: none; }
+.tabs label { font-family: var(--font-mono); font-size: 11.5px; padding: 10px 16px; cursor: pointer;
+  color: var(--mid); border-right: 1px solid var(--border-soft); user-select: none; }
+#p-trace:checked ~ .tabs label[for="p-trace"],
+#p-warn:checked  ~ .tabs label[for="p-warn"],
+#p-loss:checked  ~ .tabs label[for="p-loss"],
+#p-spec:checked  ~ .tabs label[for="p-spec"],
+#p-trip:checked  ~ .tabs label[for="p-trip"],
+#p-map:checked   ~ .tabs label[for="p-map"]
+  { color: var(--text); background: var(--surface); box-shadow: inset 0 -2px 0 var(--accent); }
+.tabs label .count { color: var(--muted); margin-left: 6px; }
+.tabs label .count.warn { color: var(--yellow); }
+.tabs label .count.bad { color: var(--red); }
+.tabpanel { display: none; padding: 0; max-height: 460px; overflow: auto; }
+.report table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; }
+.report th { text-align: left; font-weight: 500; color: var(--muted); font-size: 10.5px;
+  letter-spacing: .12em; text-transform: uppercase; padding: 9px 14px;
+  border-bottom: 1px solid var(--border-soft); position: sticky; top: 0; background: var(--surface2); }
+.report td { padding: 6px 14px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+.report tr:last-child td { border-bottom: 0; }
+.report tbody tr:hover { background: var(--surface2); }
+td.src { color: var(--yellow); white-space: nowrap; }
+td.dst { color: var(--green); }
+td.val { color: var(--mid); word-break: break-word; }
+td.note { color: var(--muted); }
+.sev { display: inline-block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  border-radius: 4px; padding: 1px 7px; border: 1px solid; }
+.sev.err { color: var(--red); border-color: var(--red); background: var(--red-bg); }
+.sev.warn { color: var(--yellow); border-color: var(--yellow-line); background: var(--yellow-bg); }
+.sev.info { color: var(--accent); border-color: var(--blue-line); background: var(--blue-bg); }
+.sev.ok { color: var(--green); border-color: var(--green-line); background: var(--green-bg); }
+.empty { padding: 26px 16px; text-align: center; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px; }
+#p-trace:checked ~ #tab-trace, #p-warn:checked ~ #tab-warn,
+#p-loss:checked ~ #tab-loss, #p-spec:checked ~ #tab-spec,
+#p-map:checked ~ #tab-map, #p-trip:checked ~ #tab-trip { display: block; }
+
+.tab-note { padding: 12px 14px; color: var(--mid); font-size: 13px;
+  border-bottom: 1px solid var(--border-soft); background: var(--surface2); }
+.tab-note code { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+
+/* diff rows */
+td.d-same { color: var(--muted); }
+td.d-a { color: var(--yellow); }
+td.d-b { color: var(--green); }
+
+/* ── docs ── */
+.docs { margin-top: 40px; max-width: 900px; }
+.docs h2 { font-size: 18px; margin: 30px 0 10px; font-weight: 620; }
+.docs h3 { font-size: 14px; margin: 20px 0 6px; font-family: var(--font-mono);
+  color: var(--mid); letter-spacing: .04em; font-weight: 500; }
+.docs p, .docs li { color: var(--mid); font-size: 14px; }
+.docs ul { margin: 8px 0 8px 20px; }
+.docs li { margin: 4px 0; }
+.docs code { font-family: var(--font-mono); font-size: 12.5px; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border-soft); border-radius: 4px; padding: 1px 5px; }
+.docs strong { color: var(--text); font-weight: 600; }
+footer { margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--border-soft);
+  color: var(--muted); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 12px; }
+footer a { color: var(--mid); text-decoration: none; }
+footer a:hover { color: var(--accent); }
+.grow { flex: 1 1 auto; }  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <span class="app-mark">🔁</span>
+  <div class="app-titles">
+    <h1>HL7 v2 &harr; FHIR Converter</h1>
+    <p>HL7 v2.5.1 messages to FHIR R4 Bundles, and back</p>
+  </div>
+  <div class="app-actions">
+    <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
+    <button class="btn-theme" id="btn-theme">
+      <span class="theme-icon">☀️</span>
+      <span class="theme-label">Light</span>
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section class="intro">
+  <p>Paste an HL7 v2.5.1 message (ADT, ORM, ORU, SIU, ACK) and get a FHIR R4 message Bundle &mdash;
+     or paste a Bundle and get the pipe-delimited message back. Every mapped element is traced field by
+     field, and anything the mapping drops is listed rather than silently lost.</p>
+  <span class="privacy">&#9679; Runs entirely in your browser &mdash; no uploads, no network calls</span>
+</section>
+
+<div class="bar">
+  <div class="seg" role="group" aria-label="Conversion direction">
+    <input type="radio" name="dir" id="dir-v2f" checked>
+    <label for="dir-v2f">HL7 v2 &rarr; FHIR</label>
+    <input type="radio" name="dir" id="dir-f2v">
+    <label for="dir-f2v">FHIR &rarr; HL7 v2</label>
+  </div>
+  <select id="sample" aria-label="Load a sample message"></select>
+  <button id="btn-convert" class="primary" type="button">Convert &#9654;</button>
+  <button id="btn-swap" type="button" title="Send the output back to the input and flip direction">Output &rarr; Input</button>
+  <button id="btn-trip" type="button" title="Convert, convert back, and diff against the original">Round-trip check</button>
+  <button id="btn-clear" type="button">Clear</button>
+  <span class="spacer"></span>
+  <span class="stat" id="stat"></span>
+</div>
+
+<div class="panes">
+  <section class="pane">
+    <div class="pane-head">
+      <span class="pane-title" id="in-title">Source</span>
+      <span class="spacer grow"></span>
+      <button class="mini" id="btn-paste" type="button">Paste</button>
+    </div>
+    <textarea id="input" spellcheck="false" autocomplete="off" placeholder="Paste an HL7 v2.5.1 message here (segments separated by newlines) or pick a sample above."></textarea>
+  </section>
+  <section class="pane">
+    <div class="pane-head">
+      <span class="pane-title" id="out-title">Output</span>
+      <span class="spacer grow"></span>
+      <button class="mini" id="btn-copy" type="button">Copy</button>
+      <button class="mini" id="btn-dl" type="button">Download</button>
+    </div>
+    <pre id="output" tabindex="0"></pre>
+  </section>
+</div>
+
+<div class="report">
+  <input type="radio" name="rep" id="p-trace" checked>
+  <input type="radio" name="rep" id="p-warn">
+  <input type="radio" name="rep" id="p-loss">
+  <input type="radio" name="rep" id="p-spec">
+  <input type="radio" name="rep" id="p-trip">
+  <input type="radio" name="rep" id="p-map">
+  <div class="tabs">
+    <label for="p-trace">Mapping trace <span class="count" id="c-trace"></span></label>
+    <label for="p-warn">Issues <span class="count" id="c-warn"></span></label>
+    <label for="p-loss">Not carried over <span class="count" id="c-loss"></span></label>
+    <label for="p-spec">Message anatomy <span class="count" id="c-spec"></span></label>
+    <label for="p-trip">Round trip <span class="count" id="c-trip"></span></label>
+    <label for="p-map">Mapping table</label>
+  </div>
+  <div id="tab-trace" class="tabpanel"></div>
+  <div id="tab-warn" class="tabpanel"></div>
+  <div id="tab-loss" class="tabpanel"></div>
+  <div id="tab-spec" class="tabpanel"></div>
+  <div id="tab-trip" class="tabpanel"></div>
+  <div id="tab-map" class="tabpanel"></div>
+  </div>
+</div>
+
+<section class="docs">
+  <h2>What this does, and what it doesn't</h2>
+  <p>HL7 v2.5.1 and FHIR R4 do not line up one-to-one. v2 is a positional, segment-oriented wire format
+     with a lot of site-local convention baked in; FHIR is a resource graph with required codings and
+     canonical value sets. Any converter has to make choices, so this one makes them <em>visible</em>:
+     the <strong>Mapping trace</strong> tab lists every element it read and where it put it, and the
+     <strong>Not carried over</strong> tab lists every populated field it did <em>not</em> read.
+     If a field matters to you and it shows up in that second list, the conversion lost it.</p>
+
+  <h3>Segments understood</h3>
+  <p><code>MSH</code> <code>MSA</code> <code>ERR</code> <code>EVN</code> <code>PID</code> <code>PV1</code>
+     <code>AL1</code> <code>DG1</code> <code>IN1</code> <code>MRG</code> <code>ORC</code> <code>OBR</code>
+     <code>OBX</code> <code>NTE</code> <code>SCH</code> <code>ZDS</code> &mdash; the segment set defined in this
+     site's <a href="https://coffeemilktea.github.io/mcp/">HL7 v2.5.1 reference</a>, which is where the field names and code tables
+     used here come from. Segments outside that set are reported as unmapped rather than dropped quietly.</p>
+
+  <h3>Message types</h3>
+  <p>ADT A01/A02/A03/A04/A05/A08/A11/A13/A28/A31/A40, ORM^O01, ORR^O02, ORU^R01, SIU^S12 and ACK.
+     Structure validation (required segments present, segment order) runs against those definitions.</p>
+
+  <h3>Bundle shape</h3>
+  <p>HL7&nbsp;&rarr;&nbsp;FHIR emits a <code>Bundle</code> of <code>type: "message"</code>: a
+     <code>MessageHeader</code> built from MSH, followed by the resources it produced, each with a
+     <code>fullUrl</code>. Resource ids are derived deterministically from the content, so converting the
+     same message twice gives byte-identical output &mdash; useful for diffing two messages through the converter.
+     FHIR&nbsp;&rarr;&nbsp;HL7 accepts that Bundle, any other Bundle, or a single bare resource.</p>
+
+  <h3>Known simplifications</h3>
+  <ul>
+    <li>Local coding systems (anything that isn't LN, SCT, I9C, I10, CPT, and similar) become
+        <code>urn:hl7:codesystem:NAME</code> placeholders, and assigning authorities become
+        <code>urn:hl7:namespace:NAME</code>. Substitute your own canonical URLs before using the output
+        anywhere real.</li>
+    <li>Timestamps without a UTC offset are emitted without one. v2 permits that; FHIR
+        <code>instant</code> does not, so <code>Bundle.timestamp</code> gets <code>Z</code> appended when
+        MSH-7 carries no offset, and that is flagged in Issues.</li>
+    <li>Phone numbers split across XTN-6/XTN-7 (area code and local number) are joined into a single
+        <code>ContactPoint.value</code>, and come back in XTN-1. Same number, different components.</li>
+    <li><code>NTE-2</code> (source of comment) has no home in a FHIR <code>Annotation</code>; it is left
+        unread, so it shows up in <strong>Not carried over</strong>.</li>
+    <li><code>OBX-2</code> is re-derived from <code>value[x]</code> on the way back. For the string types
+        the original is kept in an extension so ST and TX survive the trip; for everything else the value
+        determines the type.</li>
+    <li>Race (PID-10) and ethnicity (PID-22) use the US Core extensions, with the original code kept in
+        <code>ombCategory</code>. If you are not on US Core, drop them.</li>
+    <li>Only the segments listed above are converted. <code>RGS</code>, <code>AIS</code>, <code>AIP</code>,
+        <code>NK1</code>, <code>GT1</code>, <code>PR1</code> and the rest are reported, not mapped — and
+        when a structure requires one of them, the reverse direction says so instead of pretending.</li>
+    <li><code>Z</code> segments have no FHIR equivalent. <code>ZDS</code> is carried as an identifier with
+        system <code>urn:dicom:uid</code>; other Z segments are reported, not converted.</li>
+    <li>This is a mapping aid, not a certified interface engine. Nothing here is validated against a
+        FHIR server or a conformance profile.</li>
+  </ul>
+
+  <h3>How faithful is it?</h3>
+  <p>Press <strong>Round-trip check</strong> on any sample. Five of the six built-in messages come back
+     byte-identical apart from the simplifications listed above; the SIU sample loses its RGS and AIS
+     segments, which this converter does not map, and says so. The check is the honest answer to
+     "can I trust this?" for <em>your</em> message, not just for the samples.</p>
+</section>
+
+<footer>
+  <span>Client-side only &mdash; no cookies, no analytics, no uploads.</span>
+  <span class="grow"></span>
+  <a href="https://coffeemilktea.github.io/">coffeemilktea.github.io</a>
+  <a href="https://coffeemilktea.github.io/mcp/">HL7 v2.5.1 reference</a>
+  <a href="https://coffeemilktea.github.io/radiology-handbook.html">Radiology IT Handbook</a>
+</footer>
+
+
+</div><!-- /wrap -->
+<script>
+"use strict";
+/* ── HL7 v2.5.1 reference data (segment field names, code tables, message
+   structures) — same source of truth as this site's /mcp/ reference. ── */
+const HL7_SPEC = {
+  MSH: { name: "Message Header", f: {1:"Field Separator",2:"Encoding Characters",3:"Sending Application",4:"Sending Facility",5:"Receiving Application",6:"Receiving Facility",7:"Date/Time Of Message",8:"Security",9:"Message Type",10:"Message Control ID",11:"Processing ID",12:"Version ID",13:"Sequence Number",14:"Continuation Pointer",15:"Accept Acknowledgment Type",16:"Application Acknowledgment Type",17:"Country Code",18:"Character Set",19:"Principal Language Of Message",20:"Alternate Character Set Handling Scheme",21:"Message Profile Identifier"} },
+  MSA: { name: "Message Acknowledgment", f: {1:"Acknowledgment Code",2:"Message Control ID",3:"Text Message",4:"Expected Sequence Number",5:"Delayed Acknowledgment Type",6:"Error Condition"} },
+  EVN: { name: "Event Type", f: {1:"Event Type Code",2:"Recorded Date/Time",3:"Date/Time Planned Event",4:"Event Reason Code",5:"Operator ID",6:"Event Occurred",7:"Event Facility"} },
+  PID: { name: "Patient Identification", f: {1:"Set ID - PID",2:"Patient ID",3:"Patient Identifier List",4:"Alternate Patient ID - PID",5:"Patient Name",6:"Mother's Maiden Name",7:"Date/Time of Birth",8:"Administrative Sex",9:"Patient Alias",10:"Race",11:"Patient Address",12:"County Code",13:"Phone Number - Home",14:"Phone Number - Business",15:"Primary Language",16:"Marital Status",17:"Religion",18:"Patient Account Number",19:"SSN Number - Patient",20:"Driver's License Number - Patient",21:"Mother's Identifier",22:"Ethnic Group",23:"Birth Place",24:"Multiple Birth Indicator",25:"Birth Order",26:"Citizenship",27:"Veterans Military Status",28:"Nationality",29:"Patient Death Date and Time",30:"Patient Death Indicator",31:"Identity Unknown Indicator",32:"Identity Reliability Code",33:"Last Update Date/Time",34:"Last Update Facility",35:"Species Code",36:"Breed Code",37:"Strain",38:"Production Class Code"} },
+  PV1: { name: "Patient Visit", f: {1:"Set ID - PV1",2:"Patient Class",3:"Assigned Patient Location",4:"Admission Type",5:"Preadmit Number",6:"Prior Patient Location",7:"Attending Doctor",8:"Referring Doctor",9:"Consulting Doctor",10:"Hospital Service",11:"Temporary Location",14:"Admit Source",15:"Ambulatory Status",16:"VIP Indicator",17:"Admitting Doctor",18:"Patient Type",19:"Visit Number",44:"Admit Date/Time",45:"Discharge Date/Time",51:"Visit Indicator"} },
+  ORC: { name: "Common Order", f: {1:"Order Control",2:"Placer Order Number",3:"Filler Order Number",4:"Placer Group Number",5:"Order Status",7:"Quantity/Timing",9:"Date/Time of Transaction",10:"Entered By",11:"Verified By",12:"Ordering Provider",13:"Enterer's Location",14:"Call Back Phone Number",15:"Order Effective Date/Time",16:"Order Control Code Reason",17:"Entering Organization",18:"Entering Device",19:"Action By",21:"Ordering Facility Name",22:"Ordering Facility Address"} },
+  OBR: { name: "Observation Request", f: {1:"Set ID - OBR",2:"Placer Order Number",3:"Filler Order Number",4:"Universal Service Identifier",5:"Priority",6:"Requested Date/Time",7:"Observation Date/Time",8:"Observation End Date/Time",9:"Collection Volume",10:"Collector Identifier",11:"Specimen Action Code",12:"Danger Code",13:"Relevant Clinical Information",16:"Ordering Provider",17:"Order Callback Phone Number",18:"Placer Field 1",19:"Placer Field 2",20:"Filler Field 1",21:"Filler Field 2",22:"Results Rpt/Status Chng - Date/Time",24:"Diagnostic Serv Sect ID",25:"Result Status",26:"Parent Result",29:"Parent",31:"Reason for Study",32:"Principal Result Interpreter",34:"Technician",36:"Scheduled Date/Time",44:"Procedure Code",45:"Procedure Code Modifier"} },
+  OBX: { name: "Observation/Result", f: {1:"Set ID - OBX",2:"Value Type",3:"Observation Identifier",4:"Observation Sub-ID",5:"Observation Value",6:"Units",7:"References Range",8:"Abnormal Flags",11:"Observation Result Status",14:"Date/Time of the Observation",15:"Producer's ID",16:"Responsible Observer",17:"Observation Method",18:"Equipment Instance Identifier",19:"Date/Time of the Analysis"} },
+  NTE: { name: "Notes and Comments", f: {1:"Set ID - NTE",2:"Source of Comment",3:"Comment",4:"Comment Type"} },
+  MRG: { name: "Merge Patient Information", f: {1:"Prior Patient Identifier List",2:"Prior Alternate Patient ID",3:"Prior Patient Account Number",4:"Prior Patient ID",5:"Prior Visit Number",6:"Prior Alternate Visit ID",7:"Prior Patient Name"} },
+  AL1: { name: "Patient Allergy Information", f: {1:"Set ID - AL1",2:"Allergen Type Code",3:"Allergen Code/Mnemonic/Description",4:"Allergy Severity Code",5:"Allergy Reaction Code",6:"Identification Date"} },
+  DG1: { name: "Diagnosis", f: {1:"Set ID - DG1",2:"Diagnosis Coding Method",3:"Diagnosis Code - DG1",4:"Diagnosis Description",5:"Diagnosis Date/Time",6:"Diagnosis Type",15:"Diagnosis Priority",16:"Diagnosing Clinician",17:"Diagnosis Classification",19:"Attestation Date/Time"} },
+  ZDS: { name: "Study Instance UID (IHE Extension)", f: {1:"Study Instance UID"} },
+  IN1: { name: "Insurance", f: {1:"Set ID - IN1",2:"Insurance Plan ID",3:"Insurance Company ID",4:"Insurance Company Name",5:"Insurance Company Address",15:"Plan Type",16:"Name Of Insured",17:"Insured's Relationship To Patient",35:"Company Plan Code"} },
+  SCH: { name: "Scheduling Activity Information", f: {1:"Placer Appointment ID",2:"Filler Appointment ID",5:"Schedule ID",6:"Event Reason",7:"Appointment Reason",8:"Appointment Type",9:"Appointment Duration",10:"Appointment Duration Units",11:"Appointment Timing Quantity",25:"Filler Status Code"} },
+  ERR: { name: "Error", f: {1:"Error Code and Location",2:"Error Location",3:"HL7 Error Code",4:"Severity",5:"Application Error Code",6:"Application Error Parameter",7:"Diagnostic Information",8:"User Message"} },
+};
+
+const HL7_TABLES = {
+  "0001": { name: "Administrative Sex", v: {"A":"Ambiguous","F":"Female","M":"Male","N":"Not applicable","O":"Other","U":"Unknown"} },
+  "0003": { name: "Event Type", v: {"A01":"ADT/ACK - Admit/visit notification","A02":"ADT/ACK - Transfer a patient","A03":"ADT/ACK - Discharge/end visit","A04":"ADT/ACK - Register a patient","A05":"ADT/ACK - Pre-admit a patient","A06":"ADT/ACK - Change an outpatient to an inpatient","A07":"ADT/ACK - Change an inpatient to an outpatient","A08":"ADT/ACK - Update patient information","A09":"ADT/ACK - Patient departing - tracking","A10":"ADT/ACK - Patient arriving - tracking","A11":"ADT/ACK - Cancel admit/visit notification","A12":"ADT/ACK - Cancel transfer","A13":"ADT/ACK - Cancel discharge/end visit","A14":"ADT/ACK - Pending admit","A15":"ADT/ACK - Pending transfer","A16":"ADT/ACK - Pending discharge","A17":"ADT/ACK - Swap patients","A18":"ADT/ACK - Merge patient information","A19":"QRY/ADR - Patient query","A20":"ADT/ACK - Bed status update","A21":"ADT/ACK - Patient goes on a leave of absence","A22":"ADT/ACK - Patient returns from a leave of absence","A23":"ADT/ACK - Delete a patient record","A24":"ADT/ACK - Link patient information","A25":"ADT/ACK - Cancel pending discharge","A26":"ADT/ACK - Cancel pending transfer","A27":"ADT/ACK - Cancel pending admit","A28":"ADT/ACK - Add person or patient information","A29":"ADT/ACK - Delete person information","A30":"ADT/ACK - Merge person information","A31":"ADT/ACK - Update person information","A32":"ADT/ACK - Cancel patient arriving - tracking","A33":"ADT/ACK - Cancel patient departing - tracking","A34":"ADT/ACK - Merge patient information - patient ID only","A35":"ADT/ACK - Merge patient information - account number only","A36":"ADT/ACK - Merge patient information - patient ID and account number","A37":"ADT/ACK - Unlink patient information","A38":"ADT/ACK - Cancel pre-admit","A39":"ADT/ACK - Merge person - patient ID","A40":"ADT/ACK - Merge patient - patient identifier list","A41":"ADT/ACK - Merge account - patient account number","A42":"ADT/ACK - Merge visit - visit number","A43":"ADT/ACK - Move patient information - patient identifier list","A44":"ADT/ACK - Move account information - patient account number","A45":"ADT/ACK - Move visit information - visit number","O01":"ORM - Order message (also ORM^O01)","O02":"ORR - Order acknowledgment","R01":"ORU - Unsolicited transmission of an observation message","R02":"QRY - Query for results of observation","T02":"MDM - Original document notification and content","T11":"MDM - Document cancel notification"} },
+  "0004": { name: "Patient Class", v: {"B":"Obstetrics","C":"Commercial Account","E":"Emergency","I":"Inpatient","N":"Not Applicable","O":"Outpatient","P":"Preadmit","R":"Recurring Patient","U":"Unknown"} },
+  "0007": { name: "Admission Type", v: {"A":"Accident","C":"Elective","E":"Emergency","L":"Labor and Delivery","N":"Newborn (birth in healthcare facility)","R":"Routine","U":"Urgent"} },
+  "0008": { name: "Acknowledgment Code", v: {"AA":"Original mode: Application Accept - Enhanced mode: Application acknowledgment: Accept","AE":"Original mode: Application Error - Enhanced mode: Application acknowledgment: Error","AR":"Original mode: Application Reject - Enhanced mode: Application acknowledgment: Reject","CA":"Enhanced mode: Accept acknowledgment: Commit Accept","CE":"Enhanced mode: Accept acknowledgment: Commit Error","CR":"Enhanced mode: Accept acknowledgment: Commit Reject"} },
+  "0074": { name: "Diagnostic Service Section ID", v: {"AU":"Audiology","BG":"Blood Gases","BLB":"Blood Bank","CH":"Chemistry","CP":"Cytopathology","CT":"CAT Scan","CTH":"Cardiac Catheterization","CUS":"Cardiac Ultrasound","EC":"Electrocardiac (EKG/ECG)","EN":"Electroneuro (EEG/EMG/EP/PSG)","GE":"Genetics","HM":"Hematology","ICU":"Bedside ICU Monitoring","IMG":"Diagnostic Imaging","IMM":"Immunology","LAB":"Laboratory","MB":"Microbiology","MCB":"Mycobacteriology","MYC":"Mycology","NMR":"Nuclear Magnetic Resonance (MRI)","NMS":"Nuclear Medicine Scan","NRS":"Nursing Service Measures","OT":"Occupational Therapy","OTH":"Other","OUS":"OB Ultrasound","PAR":"Parasitology","PAT":"Pathology (gross and histologic diagnosis)","PF":"Pulmonary Function","PHR":"Pharmacy","PT":"Physical Therapy","RAD":"Radiology","RC":"Respiratory Care (Therapy)","RT":"Radiation Therapy","RUS":"Radiology Ultrasound","RX":"Radiograph","SP":"Surgical Pathology","SR":"Serology","TX":"Toxicology","URN":"Urinalysis","VR":"Virology","VUS":"Vascular Ultrasound","XRC":"Cineradiograph"} },
+  "0078": { name: "Abnormal Flags", v: {"L":"Below low normal","H":"Above high normal","LL":"Below lower panic limits","HH":"Above upper panic limits","<":"Below absolute low-off instrument scale",">":"Above absolute high-off instrument scale","A":"Abnormal (applies to non-numeric results)","AA":"Very abnormal (applies to non-numeric results)","null":"No range defined, or normal ranges don't apply","N":"Normal (applies to non-numeric results)","I":"Intermediate (microbiology susceptibilities only)","MS":"Moderately susceptible (microbiology susceptibilities only)","R":"Resistant (microbiology susceptibilities only)","S":"Susceptible (microbiology susceptibilities only)","VS":"Very susceptible (microbiology susceptibilities only)","U":"Significant change up","D":"Significant change down","B":"Better — use when direction not relevant","W":"Worse — use when direction not relevant"} },
+  "0085": { name: "Observation Result Status Codes Interpretation", v: {"C":"Record coming over is a correction and thus replaces a final result","D":"Deletes the OBX record","F":"Final results; Can only be changed with a corrected result","I":"Specimen in lab; results pending","N":"Not asked; used only on queries where only certain results are requested","O":"Order detail description only (no result)","P":"Preliminary results","R":"Results entered, not verified","S":"Partial results","U":"Results status change to final without retransmitting results already sent as 'preliminary'","W":"Post original as wrong, e.g. transmitted for wrong patient","X":"Results cannot be obtained for this observation"} },
+  "0119": { name: "Order Control Codes", v: {"NW":"New order/service","OK":"Order/service accepted & OK","UA":"Unable to accept order/service","CA":"Cancel order/service request","OC":"Order/service canceled","CR":"Canceled as requested","UC":"Unable to cancel","DC":"Discontinue order/service request","OD":"Order/service discontinued","DR":"Discontinued as requested","UD":"Unable to discontinue","HD":"Hold order request","OH":"Order/service held","UH":"Unable to put on hold","HR":"On hold as requested","RL":"Release previous hold","OE":"Order/service released","OR":"Released as requested","UR":"Unable to release","RP":"Order/service replace request","RU":"Replaced unsolicited","RO":"Replacement order","RQ":"Replaced as requested","UM":"Unable to replace","PA":"Parent order","CH":"Child order","XO":"Change order/service request","XX":"Order/service changed, unsol.","UX":"Unable to change","XR":"Changed as requested","DE":"Data errors","RE":"Observations/Performed Service to Follow","RR":"Request received","SR":"Response to send order/service status request","SS":"Send order/service status request","SC":"Status changed","SN":"Send order/service number","NA":"Number assigned","CN":"Combined result","RF":"Refill order request","AF":"Order/service refill request approval","DF":"Order/service refill request denied","FU":"Order/service refilled, unsolicited","OF":"Order/service refilled as requested","UF":"Unable to refill"} },
+  "0123": { name: "Result Status - OBR", v: {"O":"Order received; specimen not yet received","I":"No results available; specimen received, procedure incomplete","S":"No results available; procedure scheduled, but not done","A":"Some, but not all, results available","P":"Preliminary: A verified early result is available, final results not yet obtained","C":"Correction to results","R":"Results stored; not yet verified","F":"Final results; results stored and verified. Can only be changed with a corrected result","X":"No results available; Order canceled","Y":"No order on record for this test (used only on queries)","Z":"No record of this patient (used only on queries)"} },
+  "0155": { name: "Accept/Application Acknowledgment Conditions", v: {"AL":"Always","ER":"Error/reject conditions only","NE":"Never","SU":"Successful completion only"} },
+  "0190": { name: "Address Type", v: {"B":"Firm/Business","BA":"Bad address","BDL":"Birth delivery location (mother's address)","BR":"Residence at birth (newborn's address at birth)","C":"Current Or Temporary","F":"Country Of Origin","H":"Home","L":"Legal Address","M":"Mailing","N":"Birth (nee) (birth address)","O":"Office/Business","P":"Permanent","RH":"Registry home. Refers to the information system used as the master. Used if there is a difference in what information is exchanged with the 'official' source.","TM":"Tribal/Community","V":"Visit Address"} },
+  "0357": { name: "Message Error Condition Codes", v: {"0":"Message accepted","100":"Segment sequence error","101":"Required field missing","102":"Data type error","103":"Table value not found","200":"Unsupported message type","201":"Unsupported event code","202":"Unsupported processing ID","203":"Unsupported version ID","204":"Unknown key identifier","205":"Duplicate key identifier","206":"Application record locked","207":"Application internal error"} },
+};
+
+const HL7_STRUCTURES = {
+  "ADT^A01": { d: "Admit/Visit Notification — patient is admitted to the facility", s: ["MSH*","EVN*","PID*","PD1","NK1+","PV1*","PV2","DB1+","OBX+","AL1+","DG1+","DRG","PR1+","GT1+","IN1+"] },
+  "ADT^A02": { d: "Transfer a Patient — patient transferred to a different location within the facility", s: ["MSH*","EVN*","PID*","PD1","PV1*","PV2","DB1+","OBX+"] },
+  "ADT^A03": { d: "Discharge/End Visit — patient is discharged from the facility", s: ["MSH*","EVN*","PID*","PD1","PV1*","PV2","DB1+","DG1+","DRG","PR1+","OBX+"] },
+  "ADT^A04": { d: "Register a Patient — patient registered as outpatient", s: ["MSH*","EVN*","PID*","PD1","NK1+","PV1*","PV2","DB1+","OBX+","AL1+","DG1+","IN1+"] },
+  "ADT^A05": { d: "Pre-Admit a Patient — patient pre-admitted, no actual physical arrival yet", s: ["MSH*","EVN*","PID*","PD1","NK1+","PV1*","PV2","DB1+","OBX+","AL1+","DG1+","IN1+"] },
+  "ADT^A08": { d: "Update Patient Information — demographics or other patient info changed", s: ["MSH*","EVN*","PID*","PD1","NK1+","PV1*","PV2","DB1+","OBX+","AL1+","DG1+","IN1+"] },
+  "ADT^A11": { d: "Cancel Admit/Visit Notification — cancels a previously sent A01", s: ["MSH*","EVN*","PID*","PD1","PV1*","PV2","DB1+","OBX+"] },
+  "ADT^A13": { d: "Cancel Discharge/End Visit — cancels a previously sent A03", s: ["MSH*","EVN*","PID*","PD1","PV1*","PV2","DB1+","DG1+","OBX+"] },
+  "ADT^A28": { d: "Add Person Information — adds a new person to the MPI without an associated visit", s: ["MSH*","EVN*","PID*","PD1","NK1+","PV1*","IN1+"] },
+  "ADT^A31": { d: "Update Person Information — updates person-level data without a visit", s: ["MSH*","SFT+","EVN*","PID*","PD1","ROL+","NK1+","PV1*","PV2","DB1+","OBX+","AL1+","DG1+","IN1+"] },
+  "ADT^A40": { d: "Merge Patient — Patient Identifier List — merges two patient identities into one", s: ["MSH*","SFT+","EVN*","PID*","PD1","MRG*","PV1"] },
+  "ORM^O01": { d: "Order Message — transmits orders from an order-placing application to an order-filling application", s: ["MSH*","NTE+","PID","PD1","NTE+","PV1","PV2","IN1+","GT1","AL1+","ORC*","OBR","NTE+","CTD","DG1+","OBX+","ZDS","BLG"] },
+  "ORR^O02": { d: "Order Response — general response to ORM^O01", s: ["MSH*","MSA*","ERR+","NTE+","PID","NTE+","ORC*","OBR","NTE+"] },
+  "ORU^R01": { d: "Unsolicited Observation Result — transmits observations and results", s: ["MSH*","SFT+","PID","PD1","NTE+","NK1+","PV1","PV2","ORC","OBR*","NTE+","OBX+","NTE+","DSC"] },
+  "ACK": { d: "General Acknowledgment — response to any received message requiring acknowledgment", s: ["MSH*","MSA*","ERR+"] },
+  "SIU^S12": { d: "Notification of New Appointment Booking — new appointment has been booked", s: ["MSH*","SCH*","TQ1+","NTE+","PID*","PD1","PV1","PV2","OBX+","DG1+","RGS*","AIS*+","NTE+","AIL+","AIP+"] },
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. Primitives — parsing, escaping, deterministic ids
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+/* FNV-1a rounds → a UUID-shaped string. The same input always yields the same
+   id, which is what makes two converted messages diffable against each other. */
+function fnv(str, seed) {
+  let h = seed >>> 0;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0;
+}
+function stableUuid(str) {
+  const hx = (n) => n.toString(16).padStart(8, "0");
+  const s = hx(fnv(str, 2166136261)) + hx(fnv(str, 0x9e3779b9)) + hx(fnv("x" + str, 0x85ebca6b)) + hx(fnv(str + "z", 0xc2b2ae35));
+  return s.slice(0, 8) + "-" + s.slice(8, 12) + "-4" + s.slice(13, 16) + "-" +
+    ((parseInt(s[16], 16) & 0x3 | 0x8).toString(16)) + s.slice(17, 20) + "-" + s.slice(20, 32);
+}
+
+function ConvError(msg) { const e = new Error(msg); e.friendly = true; return e; }
+
+const DEFAULT_ENC = { fs: "|", cs: "^", rs: "~", ec: "\\", ss: "&" };
+/* MLLP framing bytes (VT, FS, GS), in case a message was captured off the wire */
+const MLLP_FRAME = new RegExp("[\\u000B\\u001C\\u001D]", "g");
+
+function unescapeHL7(v, enc) {
+  if (!v || v.indexOf(enc.ec) < 0) return v || "";
+  let out = "";
+  for (let i = 0; i < v.length; i++) {
+    if (v[i] !== enc.ec) { out += v[i]; continue; }
+    const j = v.indexOf(enc.ec, i + 1);
+    if (j < 0) { out += v[i]; continue; }
+    const code = v.slice(i + 1, j);
+    const simple = { F: enc.fs, S: enc.cs, T: enc.ss, R: enc.rs, E: enc.ec };
+    if (code in simple) out += simple[code];
+    else if (code === ".br") out += "\n";
+    else if (/^X[0-9A-Fa-f]+$/.test(code)) out += (code.slice(1).match(/../g) || []).map((h) => String.fromCharCode(parseInt(h, 16))).join("");
+    else if (/^[.CHNMZ]/.test(code)) out += "";      /* formatting / charset escapes carry no text */
+    else out += enc.ec + code + enc.ec;
+    i = j;
+  }
+  return out;
+}
+function escapeHL7(v, enc) {
+  if (v === null || v === undefined) return "";
+  return String(v)
+    .split(enc.ec).join(enc.ec + "E" + enc.ec)
+    .split(enc.fs).join(enc.ec + "F" + enc.ec)
+    .split(enc.cs).join(enc.ec + "S" + enc.ec)
+    .split(enc.rs).join(enc.ec + "R" + enc.ec)
+    .split(enc.ss).join(enc.ec + "T" + enc.ec)
+    .replace(/\r?\n/g, enc.ec + ".br" + enc.ec);
+}
+
+function parseHL7(text) {
+  const norm = String(text).replace(MLLP_FRAME, "").replace(/\r\n|\n\r|\n/g, "\r").trim();
+  const lines = norm.split("\r").map((l) => l.trim()).filter((l) => l.length);
+  if (!lines.length) throw ConvError("Nothing to parse.");
+  if (lines[0].slice(0, 3) !== "MSH") {
+    throw ConvError("An HL7 v2 message must begin with MSH — this one begins with " +
+      JSON.stringify(lines[0].slice(0, 12)) + ". If you meant to convert FHIR, switch the direction above.");
+  }
+  if (lines[0].length < 8) throw ConvError("The MSH segment is truncated.");
+  const fs = lines[0][3];
+  const encRaw = lines[0].split(fs)[1] || "^~\\&";
+  const enc = { fs, cs: encRaw[0] || "^", rs: encRaw[1] || "~", ec: encRaw[2] || "\\", ss: encRaw[3] || "&" };
+  const segs = lines.map((line, i) => {
+    const parts = line.split(fs);
+    const name = parts[0];
+    const f = name === "MSH" ? [name, fs].concat(parts.slice(1)) : parts;
+    return { name, idx: i, line, f, seen: new Set(), malformed: !/^[A-Z][A-Z0-9]{2}$/.test(name) };
+  });
+  return { enc, segs, raw: norm };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. Vocabulary and date helpers (v2 tables ↔ FHIR code systems)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const CS_URI = {
+  LN: "http://loinc.org", LOINC: "http://loinc.org",
+  SCT: "http://snomed.info/sct", SNM3: "http://snomed.info/sct", SNOMED: "http://snomed.info/sct",
+  I9: "http://hl7.org/fhir/sid/icd-9-cm", I9C: "http://hl7.org/fhir/sid/icd-9-cm",
+  I10: "http://hl7.org/fhir/sid/icd-10", I10C: "http://hl7.org/fhir/sid/icd-10-cm",
+  C4: "http://www.ama-assn.org/go/cpt", CPT: "http://www.ama-assn.org/go/cpt", CPT4: "http://www.ama-assn.org/go/cpt",
+  HCPCS: "http://terminology.hl7.org/CodeSystem/HCPCS", NDC: "http://hl7.org/fhir/sid/ndc",
+  RXNORM: "http://www.nlm.nih.gov/research/umls/rxnorm", RXN: "http://www.nlm.nih.gov/research/umls/rxnorm",
+  DCM: "http://dicom.nema.org/resources/ontology/DCM", UCUM: "http://unitsofmeasure.org",
+};
+const CS_NAME = Object.keys(CS_URI).reduce((m, k) => { if (!(CS_URI[k] in m)) m[CS_URI[k]] = k; return m; }, {});
+const LOCAL_CS = "urn:hl7:codesystem:";
+const LOCAL_NS = "urn:hl7:namespace:";
+const csUri = (n) => (!n ? undefined : (CS_URI[n.toUpperCase()] || LOCAL_CS + n));
+const csName = (uri) => {
+  if (!uri) return "";
+  if (uri.indexOf(LOCAL_CS) === 0) return uri.slice(LOCAL_CS.length);
+  const v2 = /CodeSystem\/v2-(\d+)$/.exec(uri);
+  if (v2) return "HL7" + v2[1];
+  if (uri === "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus") return "HL70002";
+  return CS_NAME[uri] || "";
+};
+const V2 = (t) => "http://terminology.hl7.org/CodeSystem/v2-" + t;
+const V3 = (n) => "http://terminology.hl7.org/CodeSystem/v3-" + n;
+const tblDisplay = (t, code) => (HL7_TABLES[t] && HL7_TABLES[t].v[code]) || undefined;
+const clean = (o) => { Object.keys(o).forEach((k) => { const v = o[k]; if (v === undefined || v === "" || v === null || (Array.isArray(v) && !v.length)) delete o[k]; }); return o; };
+
+/* v2 TS → FHIR dateTime; "" when unparseable */
+function ts2fhir(raw) {
+  if (!raw) return "";
+  const m = /^(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\.\d{1,4})?([+-]\d{4})?/.exec(String(raw).trim());
+  if (!m) return "";
+  const Y = m[1], Mo = m[2], D = m[3], h = m[4], mi = m[5], s = m[6], frac = m[7], off = m[8];
+  let out = Y;
+  if (Mo) out += "-" + Mo;
+  if (Mo && D) out += "-" + D;
+  if (Mo && D && h) {
+    out += "T" + h + ":" + (mi || "00") + ":" + (s || "00") + (frac || "");
+    if (off) out += off.slice(0, 3) + ":" + off.slice(3);
+  }
+  return out;
+}
+const tsHasTime = (raw) => /^\d{10}/.test(String(raw || "").trim());
+const tsHasOffset = (raw) => /[+-]\d{4}/.test(String(raw || ""));
+const ts2date = (raw) => { const t = ts2fhir(raw); return t ? t.slice(0, 10) : ""; };
+/* FHIR dateTime → v2 TS */
+function fhir2ts(v) {
+  if (!v) return "";
+  const m = /^(\d{4})-?(\d{2})?-?(\d{2})?(?:[T ](\d{2}):?(\d{2})?:?(\d{2})?(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?/.exec(String(v));
+  if (!m) return "";
+  let out = m[1] + (m[2] || "") + (m[3] || "");
+  if (m[4]) out += m[4] + (m[5] || "00") + (m[6] || "00");
+  if (m[4] && m[8] && m[8] !== "Z") out += m[8].replace(":", "");
+  return out;
+}
+
+const NAME_USE = { L: "official", D: "usual", M: "maiden", N: "nickname", A: "nickname", B: "official", C: "official" };
+const NAME_USE_REV = { official: "L", usual: "D", maiden: "M", nickname: "N", anonymous: "A", old: "B", temp: "D" };
+const ADDR_USE = { H: "home", B: "work", O: "work", C: "temp", M: "home", P: "home", F: "home" };
+const ADDR_USE_REV = { home: "H", work: "B", temp: "C", billing: "M", old: "H" };
+const TEL_USE = { PRN: "home", ORN: "home", WPN: "work", VHN: "temp", ASN: "work", EMR: "temp", NET: "home", BPN: "work", PRS: "mobile" };
+const GENDER = { F: "female", M: "male", O: "other", U: "unknown", A: "other", N: "other" };
+const GENDER_REV = { female: "F", male: "M", other: "O", unknown: "U" };
+const ENC_CLASS = {
+  I: { code: "IMP", display: "inpatient encounter" }, O: { code: "AMB", display: "ambulatory" },
+  E: { code: "EMER", display: "emergency" }, P: { code: "PRENC", display: "pre-admission" },
+  R: { code: "AMB", display: "ambulatory" }, B: { code: "OBSENC", display: "observation encounter" },
+  C: { code: "AMB", display: "ambulatory" }, N: { code: "NONAC", display: "inactive" },
+  U: { code: "AMB", display: "ambulatory" },
+};
+const ENC_CLASS_REV = { IMP: "I", ACUTE: "I", NONAC: "N", AMB: "O", EMER: "E", PRENC: "P", OBSENC: "B", SS: "O", VR: "O", HH: "O" };
+const OBS_STATUS = { C: "corrected", D: "entered-in-error", F: "final", I: "registered", P: "preliminary", R: "preliminary", S: "partial", U: "final", W: "entered-in-error", X: "cancelled" };
+const OBS_STATUS_REV = { corrected: "C", "entered-in-error": "D", final: "F", registered: "I", preliminary: "P", partial: "S", cancelled: "X", amended: "C", unknown: "I" };
+const RPT_STATUS = { O: "registered", I: "registered", S: "partial", A: "partial", P: "preliminary", C: "corrected", R: "preliminary", F: "final", X: "cancelled", Y: "cancelled", Z: "cancelled" };
+const RPT_STATUS_REV = { registered: "I", partial: "A", preliminary: "P", final: "F", corrected: "C", amended: "C", cancelled: "X", "entered-in-error": "X", unknown: "I" };
+const ORDER_STATUS = { NW: "active", OK: "active", CA: "revoked", DC: "revoked", CR: "revoked", OC: "revoked", OD: "revoked", HD: "on-hold", XO: "active", SC: "active", RE: "completed", SN: "active", UA: "active", UC: "revoked", UD: "revoked", UH: "on-hold" };
+const ORDER_STATUS_REV = { active: "NW", revoked: "CA", "on-hold": "HD", completed: "RE", draft: "NW", unknown: "NW", "entered-in-error": "CA" };
+const INTERPRET = { L: "Low", H: "High", LL: "Critical low", HH: "Critical high", N: "Normal", A: "Abnormal", AA: "Critical abnormal", S: "Susceptible", R: "Resistant", I: "Intermediate" };
+const ALLERGY_CAT = { DA: "medication", FA: "food", MA: "environment", MC: "environment", EA: "environment", AA: "environment", PA: "environment", LA: "environment" };
+const ALLERGY_CAT_REV = { medication: "DA", food: "FA", environment: "MA", biologic: "MA" };
+const APPT_STATUS = { Booked: "booked", Pending: "pending", Cancelled: "cancelled", Waitlist: "waitlist", Started: "arrived", Complete: "fulfilled", Overbook: "booked", Blocked: "cancelled", Deleted: "entered-in-error", Discontinued: "cancelled", "Noshow": "noshow" };
+const APPT_STATUS_REV = { booked: "Booked", pending: "Pending", cancelled: "Cancelled", waitlist: "Waitlist", arrived: "Started", fulfilled: "Complete", noshow: "Noshow", "entered-in-error": "Deleted", proposed: "Pending", "checked-in": "Started" };
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. HL7 v2.5.1 → FHIR R4
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function hl7ToFhir(text) {
+  const msg = parseHL7(text);
+  const enc = msg.enc;
+  const trace = [], issues = [];
+  const T = (src, dst, val, note) => {
+    if (val === "" || val === undefined || val === null) return;
+    trace.push({ src, dst, val: String(val), note: note || "" });
+  };
+  const I = (sev, where, txt) => issues.push({ sev, where, text: txt });
+
+  /* accessors — every read marks the field, so anything left unread ends up in
+     the "Not carried over" report rather than disappearing silently */
+  const F = (seg, n) => { if (!seg) return ""; seg.seen.add(n); return seg.f[n] === undefined ? "" : seg.f[n]; };
+  const reps = (v) => (v === "" || v === undefined ? [] : v.split(enc.rs));
+  const C = (v, n) => unescapeHL7(((v || "").split(enc.cs)[n - 1] || "").split(enc.ss)[0] || "", enc);
+  const SC = (v, c, s) => unescapeHL7(((((v || "").split(enc.cs)[c - 1] || "").split(enc.ss)[s - 1])) || "", enc);
+  const P = (v) => unescapeHL7(v || "", enc);
+  const one = (seg, n) => reps(F(seg, n))[0] || "";
+
+  /* ── composite → FHIR datatype ── */
+  const ce = (raw) => {
+    if (!raw) return undefined;
+    const code = C(raw, 1), txt = C(raw, 2), sys = C(raw, 3);
+    const alt = C(raw, 4), altTxt = C(raw, 5), altSys = C(raw, 6);
+    const cc = {}, coding = [];
+    if (code) coding.push(clean({ system: csUri(sys), code, display: txt || undefined }));
+    if (alt) coding.push(clean({ system: csUri(altSys), code: alt, display: altTxt || undefined }));
+    if (coding.length) cc.coding = coding;
+    cc.text = txt || altTxt || (code ? undefined : P(raw));
+    clean(cc);
+    return Object.keys(cc).length ? cc : undefined;
+  };
+  const cx = (raw) => {
+    const value = C(raw, 1);
+    if (!value) return undefined;
+    const auth = SC(raw, 4, 1) || C(raw, 4), typ = C(raw, 5);
+    const id = { value };
+    if (auth) id.system = LOCAL_NS + auth;
+    if (typ) id.type = { coding: [clean({ system: V2("0203"), code: typ, display: undefined })] };
+    return id;
+  };
+  const xpn = (raw) => {
+    const family = C(raw, 1), given = C(raw, 2), middle = C(raw, 3),
+      suffix = C(raw, 4), prefix = C(raw, 5), typ = C(raw, 7);
+    if (!family && !given) return undefined;
+    const n = {};
+    if (NAME_USE[typ]) n.use = NAME_USE[typ];
+    if (family) n.family = family;
+    const g = [given, middle].filter(Boolean);
+    if (g.length) n.given = g;
+    if (prefix) n.prefix = [prefix];
+    if (suffix) n.suffix = [suffix];
+    n.text = [prefix, given, middle, family, suffix].filter(Boolean).join(" ");
+    return n;
+  };
+  const xad = (raw) => {
+    const line1 = SC(raw, 1, 1) || C(raw, 1), line2 = C(raw, 2), city = C(raw, 3),
+      state = C(raw, 4), zip = C(raw, 5), country = C(raw, 6), typ = C(raw, 7);
+    if (![line1, line2, city, state, zip, country].some(Boolean)) return undefined;
+    const a = {};
+    if (ADDR_USE[typ]) a.use = ADDR_USE[typ];
+    if (typ === "M") a.type = "postal";
+    const lines = [line1, line2].filter(Boolean);
+    if (lines.length) a.line = lines;
+    if (city) a.city = city;
+    if (state) a.state = state;
+    if (zip) a.postalCode = zip;
+    if (country) a.country = country;
+    a.text = [lines.join(", "), city, state, zip, country].filter(Boolean).join(", ");
+    return a;
+  };
+  const xtn = (raw, fallbackUse) => {
+    const number = C(raw, 1), useCode = C(raw, 2), eqp = C(raw, 3), email = C(raw, 4);
+    const area = C(raw, 6), local = C(raw, 7), ext = C(raw, 8);
+    let value = number || email || [area, local].filter(Boolean).join("");
+    if (!value) return undefined;
+    if (ext) value += " x" + ext;
+    const cp = { value };
+    if (eqp === "Internet" || eqp === "X.400" || useCode === "NET" || (!eqp && value.indexOf("@") > 0)) cp.system = "email";
+    else if (eqp === "FX") cp.system = "fax";
+    else if (eqp === "BP") cp.system = "pager";
+    else cp.system = "phone";
+    if (eqp === "CP") cp.use = "mobile";
+    else if (TEL_USE[useCode]) cp.use = TEL_USE[useCode];
+    else if (fallbackUse) cp.use = fallbackUse;
+    return cp;
+  };
+
+  /* ── resource bag; ids are content-derived so output is reproducible ── */
+  const entries = [];
+  const cache = new Map();
+  function add(res, key) {
+    const uuid = stableUuid(res.resourceType + "|" + key);
+    res.id = uuid;
+    const e = { fullUrl: "urn:uuid:" + uuid, resource: res };
+    entries.push(e);
+    return { reference: e.fullUrl, resource: res };
+  }
+  function cached(kind, key, build) {
+    const k = kind + "|" + key;
+    if (cache.has(k)) return cache.get(k);
+    const ref = add(build(), key);
+    cache.set(k, ref);
+    return ref;
+  }
+  const practRef = (raw, src) => {
+    const idv = C(raw, 1), fam = C(raw, 2);
+    if (!idv && !fam) return null;
+    return cached("Practitioner", idv + "|" + fam, () => {
+      const pr = { resourceType: "Practitioner" };
+      if (idv) pr.identifier = [clean({ value: idv, type: C(raw, 13) ? { coding: [{ system: V2("0203"), code: C(raw, 13) }] } : undefined })];
+      const nm = {};
+      if (fam) nm.family = fam;
+      const g = [C(raw, 3), C(raw, 4)].filter(Boolean);
+      if (g.length) nm.given = g;
+      if (C(raw, 6)) nm.prefix = [C(raw, 6)];
+      if (C(raw, 5)) nm.suffix = [C(raw, 5)];
+      if (Object.keys(nm).length) {
+        nm.text = [C(raw, 6), C(raw, 3), C(raw, 4), fam, C(raw, 5)].filter(Boolean).join(" ");
+        pr.name = [nm];
+      }
+      const degree = C(raw, 7);
+      if (degree) pr.qualification = [{ code: { text: degree } }];
+      T(src, "Practitioner.name", nm.text || idv);
+      return pr;
+    });
+  };
+  const orgRef = (name, idv, src) => {
+    if (!name && !idv) return null;
+    return cached("Organization", (idv || "") + "|" + (name || ""), () => {
+      const o = { resourceType: "Organization" };
+      if (name) o.name = name;
+      if (idv) o.identifier = [{ value: idv }];
+      T(src, "Organization.name", name || idv);
+      return o;
+    });
+  };
+  const locRef = (raw, src) => {
+    const poc = C(raw, 1), room = C(raw, 2), bed = C(raw, 3), fac = SC(raw, 4, 1) || C(raw, 4), desc = C(raw, 9);
+    if (![poc, room, bed, fac, desc].some(Boolean)) return null;
+    return cached("Location", [poc, room, bed, fac].join("|"), () => {
+      const l = { resourceType: "Location" };
+      l.name = desc || [poc, room, bed].filter(Boolean).join(" ") || fac;
+      l.description = [fac && ("facility " + fac), poc && ("unit " + poc), room && ("room " + room), bed && ("bed " + bed)].filter(Boolean).join(", ");
+      if (bed) l.physicalType = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/location-physical-type", code: "bd", display: "Bed" }] };
+      else if (room) l.physicalType = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/location-physical-type", code: "ro", display: "Room" }] };
+      else if (poc) l.physicalType = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/location-physical-type", code: "wa", display: "Ward" }] };
+      T(src, "Location.name", l.name);
+      return clean(l);
+    });
+  };
+
+  /* ── MSH → MessageHeader ── */
+  const segs = msg.segs;
+  const mshSeg = segs[0];
+  const mshType = F(mshSeg, 9);
+  const mt = { code: C(mshType, 1), event: C(mshType, 2), struct: C(mshType, 3) };
+  const structKey = HL7_STRUCTURES[mt.code + "^" + mt.event] ? mt.code + "^" + mt.event
+    : (HL7_STRUCTURES[mt.code] ? mt.code : null);
+  T("MSH-9", "MessageHeader.eventCoding", [mt.code, mt.event, mt.struct].filter(Boolean).join("^"));
+
+  const version = C(F(mshSeg, 12), 1);
+  if (version && version !== "2.5.1") {
+    I("info", "MSH-12", "Message declares version " + version + ". It is converted using the v2.5.1 field definitions, which may not match.");
+  }
+  if (!structKey) I("warn", "MSH-9", "No structure definition for " + (mt.code || "?") + "^" + (mt.event || "?") + " — segments are converted individually, without structure validation.");
+
+  const sendApp = C(F(mshSeg, 3), 1), sendFac = C(F(mshSeg, 4), 1);
+  const rcvApp = C(F(mshSeg, 5), 1), rcvFac = C(F(mshSeg, 6), 1);
+  const mh = { resourceType: "MessageHeader" };
+  mh.eventCoding = clean({ system: V2("0003"), code: mt.event || mt.code, display: tblDisplay("0003", mt.event) });
+  mh.source = clean({ name: sendApp || undefined, endpoint: "urn:hl7v2:sender:" + (sendFac || "unknown") + "/" + (sendApp || "unknown") });
+  T("MSH-3", "MessageHeader.source.name", sendApp);
+  T("MSH-4", "MessageHeader.source.endpoint", sendFac);
+  if (rcvApp || rcvFac) {
+    mh.destination = [clean({ name: rcvApp || undefined, endpoint: "urn:hl7v2:receiver:" + (rcvFac || "unknown") + "/" + (rcvApp || "unknown") })];
+    T("MSH-5", "MessageHeader.destination[0].name", rcvApp);
+    T("MSH-6", "MessageHeader.destination[0].endpoint", rcvFac);
+  }
+  const procId = C(F(mshSeg, 11), 1);
+  const tags = [];
+  if (procId) { tags.push(clean({ system: V2("0103"), code: procId, display: procId === "P" ? "Production" : procId === "D" ? "Debugging" : procId === "T" ? "Training" : undefined })); T("MSH-11", "MessageHeader.meta.tag", procId); }
+  if (version) { tags.push({ system: V2("0104"), code: version }); T("MSH-12", "MessageHeader.meta.tag", version); }
+  if (tags.length) mh.meta = { tag: tags };
+  const mhRef = add(mh, "header|" + (C(F(mshSeg, 10), 1) || msg.raw.length));
+
+  const ctrlId = C(F(mshSeg, 10), 1);
+  const msgTime = P(one(mshSeg, 7));
+  T("MSH-10", "Bundle.identifier.value", ctrlId);
+  T("MSH-7", "Bundle.timestamp", msgTime && ts2fhir(msgTime));
+  if (msgTime && tsHasTime(msgTime) && !tsHasOffset(msgTime)) {
+    I("warn", "MSH-7", "No UTC offset in the message timestamp. Bundle.timestamp is an instant and requires one, so Z was assumed.");
+  }
+
+  /* ── walk the remaining segments ── */
+  let patientRef = null, encRef = null, curOrder = null, curReport = null, noteTarget = null;
+  const focus = [];
+  const anatomy = [];
+  let orderSeq = 0, obsSeq = 0;
+
+  const noteAppend = (target, field, txt) => {
+    if (!target) return false;
+    const res = target.resource || target;
+    if (field === "comment") { res.comment = (res.comment ? res.comment + "\n" : "") + txt; return true; }
+    res[field] = res[field] || [];
+    res[field].push({ text: txt });
+    return true;
+  };
+
+  function pidToPatient(seg) {
+    const p = { resourceType: "Patient" };
+    const ids = [];
+    reps(F(seg, 3)).forEach((r, i) => {
+      const id = cx(r);
+      if (id) { ids.push(id); T("PID-3[" + (i + 1) + "]", "Patient.identifier[" + (ids.length - 1) + "]", C(r, 1) + (C(r, 5) ? " (" + C(r, 5) + ")" : "")); }
+    });
+    const legacy = C(F(seg, 2), 1);
+    if (legacy) { ids.push({ value: legacy }); T("PID-2", "Patient.identifier[" + (ids.length - 1) + "]", legacy, "PID-2 is deprecated in v2.5.1"); }
+    const ssn = P(one(seg, 19));
+    if (ssn) { ids.push({ system: "http://hl7.org/fhir/sid/us-ssn", value: ssn, type: { coding: [{ system: V2("0203"), code: "SS" }] } }); T("PID-19", "Patient.identifier[" + (ids.length - 1) + "]", ssn); }
+    const acct = C(F(seg, 18), 1);
+    if (acct) { ids.push({ system: LOCAL_NS + "PID-18", value: acct, type: { coding: [{ system: V2("0203"), code: "AN" }] } }); T("PID-18", "Patient.identifier[" + (ids.length - 1) + "]", acct); }
+    const dl = C(F(seg, 20), 1);
+    if (dl) { ids.push({ system: LOCAL_NS + "PID-20", value: dl, type: { coding: [{ system: V2("0203"), code: "DL" }] } }); T("PID-20", "Patient.identifier[" + (ids.length - 1) + "]", dl); }
+    if (ids.length) p.identifier = ids;
+    else I("warn", "PID-3", "No patient identifier — PID-3 is required in v2.5.1 and Patient.identifier is how downstream systems match.");
+
+    const names = [];
+    reps(F(seg, 5)).forEach((r, i) => { const n = xpn(r); if (n) { names.push(n); T("PID-5[" + (i + 1) + "]", "Patient.name[" + (names.length - 1) + "]", n.text); } });
+    if (names.length) p.name = names;
+    else I("warn", "PID-5", "No patient name in PID-5.");
+
+    const ext = [];
+    const maiden = xpn(one(seg, 6));
+    if (maiden) { ext.push({ url: "http://hl7.org/fhir/StructureDefinition/patient-mothersMaidenName", valueString: maiden.family || maiden.text }); T("PID-6", "Patient.extension[patient-mothersMaidenName]", maiden.family || maiden.text); }
+
+    const dob = P(one(seg, 7));
+    if (dob) {
+      p.birthDate = ts2date(dob);
+      T("PID-7", "Patient.birthDate", p.birthDate);
+      if (tsHasTime(dob)) { ext.push({ url: "http://hl7.org/fhir/StructureDefinition/patient-birthTime", valueDateTime: ts2fhir(dob) }); T("PID-7", "Patient.extension[patient-birthTime]", ts2fhir(dob)); }
+    }
+    const sex = C(F(seg, 8), 1);
+    if (sex) {
+      p.gender = GENDER[sex.toUpperCase()] || "unknown";
+      T("PID-8", "Patient.gender", sex + " → " + p.gender, GENDER[sex.toUpperCase()] ? "" : "code not in table 0001");
+      if (!GENDER[sex.toUpperCase()]) I("warn", "PID-8", "Administrative sex " + JSON.stringify(sex) + " is not in table 0001; mapped to unknown.");
+      if (sex.toUpperCase() === "A" || sex.toUpperCase() === "N") I("info", "PID-8", "v2 " + sex + " has no exact FHIR administrative-gender code; mapped to other.");
+    }
+    const ombExt = (raw, url, src) => {
+      const inner = [];
+      const code = C(raw, 1), display = C(raw, 2), sys = C(raw, 3);
+      if (code) inner.push({ url: "ombCategory", valueCoding: clean({ system: csUri(sys), code, display: display || undefined }) });
+      inner.push({ url: "text", valueString: display || code });
+      ext.push({ url, extension: inner });
+      T(src, "Patient.extension[" + url.split("/").pop() + "]", display || code);
+    };
+    const race = one(seg, 10);
+    if (race) ombExt(race, "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race", "PID-10");
+    const eth = one(seg, 22);
+    if (eth) ombExt(eth, "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity", "PID-22");
+    const bp = P(one(seg, 23));
+    if (bp) { ext.push({ url: "http://hl7.org/fhir/StructureDefinition/patient-birthPlace", valueAddress: { text: bp } }); T("PID-23", "Patient.extension[patient-birthPlace]", bp); }
+    const relig = one(seg, 17);
+    if (relig) { ext.push({ url: "http://hl7.org/fhir/StructureDefinition/patient-religion", valueCodeableConcept: ce(relig) }); T("PID-17", "Patient.extension[patient-religion]", C(relig, 1)); }
+
+    const addrs = [];
+    reps(F(seg, 11)).forEach((r, i) => { const a = xad(r); if (a) { addrs.push(a); T("PID-11[" + (i + 1) + "]", "Patient.address[" + (addrs.length - 1) + "]", a.text); } });
+    if (addrs.length) p.address = addrs;
+
+    const tel = [];
+    reps(F(seg, 13)).forEach((r, i) => { const c = xtn(r, "home"); if (c) { tel.push(c); T("PID-13[" + (i + 1) + "]", "Patient.telecom[" + (tel.length - 1) + "]", c.value); } });
+    reps(F(seg, 14)).forEach((r, i) => { const c = xtn(r, "work"); if (c) { tel.push(c); T("PID-14[" + (i + 1) + "]", "Patient.telecom[" + (tel.length - 1) + "]", c.value); } });
+    if (tel.length) p.telecom = tel;
+
+    const lang = one(seg, 15);
+    if (lang) { p.communication = [{ language: ce(lang), preferred: true }]; T("PID-15", "Patient.communication[0].language", C(lang, 1)); }
+    const marital = one(seg, 16);
+    if (marital) {
+      const code = C(marital, 1);
+      p.maritalStatus = { coding: [clean({ system: /^[ADMSWUTLPC]$/.test(code) ? V3("MaritalStatus") : V2("0002"), code, display: C(marital, 2) || undefined })] };
+      T("PID-16", "Patient.maritalStatus", code);
+    }
+    const mb = C(F(seg, 24), 1), bo = C(F(seg, 25), 1);
+    if (mb) { p.multipleBirthBoolean = mb.toUpperCase() === "Y"; T("PID-24", "Patient.multipleBirthBoolean", p.multipleBirthBoolean); }
+    if (bo) { delete p.multipleBirthBoolean; p.multipleBirthInteger = parseInt(bo, 10); T("PID-25", "Patient.multipleBirthInteger", bo, "replaces multipleBirthBoolean — FHIR allows only one"); }
+    const deathTime = P(one(seg, 29)), deathInd = C(F(seg, 30), 1);
+    if (deathTime) { p.deceasedDateTime = ts2fhir(deathTime); T("PID-29", "Patient.deceasedDateTime", p.deceasedDateTime); }
+    else if (deathInd) { p.deceasedBoolean = deathInd.toUpperCase() === "Y"; T("PID-30", "Patient.deceasedBoolean", p.deceasedBoolean); }
+    const upd = P(one(seg, 33));
+    if (upd) { p.meta = Object.assign(p.meta || {}, { lastUpdated: ts2fhir(upd) + (tsHasOffset(upd) ? "" : "Z") }); T("PID-33", "Patient.meta.lastUpdated", ts2fhir(upd)); }
+    if (ext.length) p.extension = ext;
+    p.active = true;
+    return p;
+  }
+
+  function pv1ToEncounter(seg, subject) {
+    const e = { resourceType: "Encounter", status: "unknown" };
+    const cls = C(F(seg, 2), 1).toUpperCase();
+    e.class = clean(Object.assign({ system: V3("ActCode") }, ENC_CLASS[cls] || { code: "AMB", display: "ambulatory" }));
+    T("PV1-2", "Encounter.class", cls + " → " + e.class.code, ENC_CLASS[cls] ? "" : "not in table 0004; defaulted to AMB");
+    if (cls && !ENC_CLASS[cls]) I("warn", "PV1-2", "Patient class " + JSON.stringify(cls) + " is not in table 0004; defaulted to AMB.");
+
+    const visit = cx(one(seg, 19));
+    if (visit) { e.identifier = [visit]; T("PV1-19", "Encounter.identifier[0]", visit.value); }
+    const admitT = P(one(seg, 44)), dischT = P(one(seg, 45));
+    if (admitT || dischT) {
+      e.period = clean({ start: ts2fhir(admitT), end: ts2fhir(dischT) });
+      T("PV1-44", "Encounter.period.start", ts2fhir(admitT));
+      T("PV1-45", "Encounter.period.end", ts2fhir(dischT));
+    }
+    e.status = dischT ? "finished" : (admitT ? "in-progress" : (cls === "P" ? "planned" : "unknown"));
+    T("PV1-44/45", "Encounter.status", e.status, "derived from admit/discharge presence");
+
+    const admType = one(seg, 4);
+    if (admType) { e.priority = ce(admType); if (e.priority && e.priority.coding) e.priority.coding[0].system = V2("0007"); T("PV1-4", "Encounter.priority", C(admType, 1)); }
+    const svc = one(seg, 10);
+    if (svc) { e.serviceType = ce(svc); T("PV1-10", "Encounter.serviceType", C(svc, 1)); }
+    const patType = one(seg, 18);
+    if (patType) { e.type = [ce(patType)]; T("PV1-18", "Encounter.type[0]", C(patType, 1)); }
+
+    const parts = [];
+    const addPart = (fieldNo, code, display) => {
+      reps(F(seg, fieldNo)).forEach((r, i) => {
+        const pr = practRef(r, "PV1-" + fieldNo + "[" + (i + 1) + "]");
+        if (!pr) return;
+        parts.push({ type: [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/v3-ParticipationType", code, display }] }], individual: { reference: pr.reference } });
+        T("PV1-" + fieldNo + "[" + (i + 1) + "]", "Encounter.participant[" + (parts.length - 1) + "]", C(r, 2) + " (" + display + ")");
+      });
+    };
+    addPart(7, "ATND", "attender");
+    addPart(8, "REF", "referrer");
+    addPart(9, "CON", "consultant");
+    addPart(17, "ADM", "admitter");
+    if (parts.length) e.participant = parts;
+
+    const locs = [];
+    const addLoc = (fieldNo, status) => {
+      const lr = locRef(one(seg, fieldNo), "PV1-" + fieldNo);
+      if (!lr) return;
+      locs.push(clean({ location: { reference: lr.reference }, status }));
+      T("PV1-" + fieldNo, "Encounter.location[" + (locs.length - 1) + "]", lr.resource.name + (status ? " (" + status + ")" : ""));
+    };
+    addLoc(3, "active");
+    addLoc(6, "completed");
+    addLoc(11, undefined);
+    if (locs.length) e.location = locs;
+
+    const hosp = {};
+    const admSrc = one(seg, 14), disp = one(seg, 36), preadmit = C(F(seg, 5), 1);
+    if (admSrc) { hosp.admitSource = ce(admSrc); T("PV1-14", "Encounter.hospitalization.admitSource", C(admSrc, 1)); }
+    if (disp) { hosp.dischargeDisposition = ce(disp); T("PV1-36", "Encounter.hospitalization.dischargeDisposition", C(disp, 1)); }
+    if (preadmit) { hosp.preAdmissionIdentifier = { value: preadmit }; T("PV1-5", "Encounter.hospitalization.preAdmissionIdentifier", preadmit); }
+    if (Object.keys(hosp).length) e.hospitalization = hosp;
+    if (subject) e.subject = { reference: subject.reference };
+    return e;
+  }
+
+  function obxToObservation(seg, n) {
+    const o = { resourceType: "Observation", status: "final" };
+    const st = C(F(seg, 11), 1).toUpperCase();
+    if (st) {
+      o.status = OBS_STATUS[st] || "final";
+      T("OBX-11", "Observation.status", st + " → " + o.status, OBS_STATUS[st] ? "" : "not in table 0085");
+      if (!OBS_STATUS[st]) I("warn", "OBX-11", "Result status " + JSON.stringify(st) + " is not in table 0085; defaulted to final.");
+    } else I("warn", "OBX-11", "OBX-11 is required in v2.5.1 and Observation.status is required in FHIR; defaulted to final.");
+
+    const codeRaw = one(seg, 3);
+    o.code = ce(codeRaw) || { text: "Unidentified observation" };
+    T("OBX-3", "Observation.code", C(codeRaw, 1) + (C(codeRaw, 2) ? " " + C(codeRaw, 2) : ""));
+    const subId = C(F(seg, 4), 1);
+    if (subId) { o.identifier = [{ system: LOCAL_NS + "OBX-4", value: subId }]; T("OBX-4", "Observation.identifier[0]", subId, "sub-ID kept as an identifier — FHIR has no direct equivalent"); }
+
+    const vt = C(F(seg, 2), 1).toUpperCase();
+    const vals = reps(F(seg, 5));
+    const raw = vals[0] === undefined ? "" : vals[0];
+    const units = F(seg, 6);
+    const unitName = C(units, 1), unitSys = C(units, 3);
+    const unitText = C(units, 2);
+    const qty = (num, comparator) => clean({
+      value: isNaN(num) ? undefined : num, comparator,
+      unit: unitText || unitName || undefined,
+      system: unitName ? (unitSys ? csUri(unitSys) : "http://unitsofmeasure.org") : undefined,
+      code: unitName || undefined,
+    });
+    if (raw !== "") {
+      if (vt === "NM") { o.valueQuantity = qty(parseFloat(P(raw))); T("OBX-5", "Observation.valueQuantity", P(raw) + (unitName ? " " + unitName : "")); }
+      else if (vt === "SN") {
+        const cmp = C(raw, 1), n1 = parseFloat(C(raw, 2)), sep = C(raw, 3), n2 = parseFloat(C(raw, 4));
+        if (sep === "-" && !isNaN(n2)) { o.valueRange = { low: qty(n1), high: qty(n2) }; T("OBX-5", "Observation.valueRange", C(raw, 2) + "-" + C(raw, 4)); }
+        else { o.valueQuantity = qty(n1, ["<", "<=", ">", ">=", "="].indexOf(cmp) >= 0 ? (cmp === "=" ? undefined : cmp) : undefined); T("OBX-5", "Observation.valueQuantity", cmp + C(raw, 2)); }
+      }
+      else if (vt === "CE" || vt === "CWE" || vt === "CF" || vt === "CNE") { o.valueCodeableConcept = ce(raw); T("OBX-5", "Observation.valueCodeableConcept", C(raw, 1) || P(raw)); }
+      else if (vt === "TS" || vt === "DTM" || vt === "DT") { o.valueDateTime = ts2fhir(P(raw)); T("OBX-5", "Observation.valueDateTime", o.valueDateTime); }
+      else if (vt === "TM") { o.valueTime = (P(raw).match(/^(\d{2})(\d{2})?(\d{2})?/) || []).slice(1).filter(Boolean).join(":"); T("OBX-5", "Observation.valueTime", o.valueTime); }
+      else if (vt === "ED" || vt === "RP") {
+        o.valueString = P(raw);
+        I("warn", "OBX-5", "Value type " + vt + " carries encapsulated or referenced data. It is passed through as a string; a real mapping needs Media or DocumentReference.");
+        T("OBX-5", "Observation.valueString", P(raw), "value type " + vt);
+      }
+      else if (vt === "CX" || vt === "XCN") { o.valueString = P(raw); T("OBX-5", "Observation.valueString", P(raw), "value type " + vt); }
+      else {
+        const joined = vals.map((v) => P(v)).join("\n");
+        o.valueString = joined;
+        T("OBX-5", "Observation.valueString", joined.length > 80 ? joined.slice(0, 80) + "…" : joined, vt ? "value type " + vt : "no value type in OBX-2");
+      }
+      if (vals.length > 1 && o.valueString === undefined) {
+        o.note = [{ text: vals.slice(1).map((v) => P(v)).join("\n") }];
+        I("info", "OBX-5", "OBX-5 repeats; only the first repetition became the value, the rest became a note.");
+      }
+    }
+
+    if (/^(ST|TX|FT|ID|IS)$/.test(vt)) o.extension = (o.extension || []).concat([{ url: LOCAL_CS + "OBX-2-value-type", valueCode: vt }]);
+    const rr = P(one(seg, 7));
+    if (rr) {
+      const m = /^\s*([\d.]+)\s*-\s*([\d.]+)\s*$/.exec(rr);
+      if (m) o.referenceRange = [{ low: qty(parseFloat(m[1])), high: qty(parseFloat(m[2])) }];
+      else {
+        const m2 = /^\s*([<>]=?)\s*([\d.]+)\s*$/.exec(rr);
+        if (m2) o.referenceRange = [m2[1][0] === "<" ? { high: qty(parseFloat(m2[2])) } : { low: qty(parseFloat(m2[2])) }];
+        else o.referenceRange = [{ text: rr }];
+      }
+      T("OBX-7", "Observation.referenceRange[0]", rr);
+    }
+    const flags = reps(F(seg, 8)).map((r) => C(r, 1)).filter(Boolean);
+    if (flags.length) {
+      o.interpretation = [{ coding: flags.map((f) => clean({ system: "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation", code: f, display: INTERPRET[f] })) }];
+      T("OBX-8", "Observation.interpretation[0]", flags.join(", "));
+    }
+    const when = P(one(seg, 14));
+    if (when) { o.effectiveDateTime = ts2fhir(when); T("OBX-14", "Observation.effectiveDateTime", o.effectiveDateTime); }
+    const method = one(seg, 17);
+    if (method) { o.method = ce(method); T("OBX-17", "Observation.method", C(method, 1)); }
+    const performers = [];
+    reps(F(seg, 16)).forEach((r, i) => { const pr = practRef(r, "OBX-16[" + (i + 1) + "]"); if (pr) performers.push({ reference: pr.reference }); });
+    const producer = C(F(seg, 15), 1);
+    if (producer) { const or = orgRef(C(F(seg, 15), 2) || producer, producer, "OBX-15"); if (or) performers.push({ reference: or.reference }); }
+    if (performers.length) { o.performer = performers; T("OBX-15/16", "Observation.performer", performers.length + " reference(s)"); }
+    if (patientRef) o.subject = { reference: patientRef.reference };
+    if (encRef) o.encounter = { reference: encRef.reference };
+    return o;
+  }
+
+  /* ── segment walk ──
+     PID and PV1 are handled first wherever they sit, because segments such as
+     SCH legitimately precede them and still need the patient to reference. */
+  segs.forEach((sg) => {                     /* Set ID fields are positional bookkeeping */
+    const sp = HL7_SPEC[sg.name];
+    if (sp && /^Set ID/.test(sp.f[1] || "")) sg.seen.add(1);
+  });
+  const firstOf = (name) => segs.find((s) => s.name === name && !s.malformed) || null;
+  const pidSeg = firstOf("PID"), pv1Seg = firstOf("PV1");
+  const preHandled = new Set();
+  if (pidSeg) {
+    const pat = pidToPatient(pidSeg);
+    patientRef = add(pat, "patient|" + ((pat.identifier && pat.identifier[0] && pat.identifier[0].value) || (pat.name && pat.name[0] && pat.name[0].text) || pidSeg.idx));
+    focus.push({ reference: patientRef.reference });
+    preHandled.add(pidSeg);
+  }
+  if (pv1Seg) {
+    const e = pv1ToEncounter(pv1Seg, patientRef);
+    encRef = add(e, "encounter|" + ((e.identifier && e.identifier[0] && e.identifier[0].value) || (patientRef ? patientRef.reference : pv1Seg.idx)));
+    focus.push({ reference: encRef.reference });
+    preHandled.add(pv1Seg);
+  }
+
+  segs.forEach((seg, i) => {
+    if (i === 0) return;
+    if (seg.malformed) { I("error", "line " + (i + 1), "“" + seg.name + "” is not a valid segment name (three uppercase alphanumerics). The line was skipped."); return; }
+    if (preHandled.has(seg)) { noteTarget = null; return; }
+    switch (seg.name) {
+      case "EVN": {
+        const recorded = P(one(seg, 2)), occurred = P(one(seg, 6));
+        const evnType = C(F(seg, 1), 1);
+        if (evnType) T("EVN-1", "(none)", evnType, "deprecated since v2.3.1 — MSH-9 carries the trigger event");
+        const prov = { resourceType: "Provenance", target: [{ reference: mhRef.reference }] };
+        prov.recorded = (ts2fhir(recorded) || ts2fhir(msgTime) || new Date().toISOString().slice(0, 19)) + (tsHasOffset(recorded || msgTime) ? "" : "Z");
+        T("EVN-2", "Provenance.recorded", prov.recorded);
+        if (occurred) { prov.occurredDateTime = ts2fhir(occurred); T("EVN-6", "Provenance.occurredDateTime", prov.occurredDateTime); }
+        prov.activity = clean({ coding: [clean({ system: V2("0003"), code: mt.event, display: tblDisplay("0003", mt.event) })] });
+        const reason = one(seg, 4);
+        if (reason) { prov.reason = [ce(reason)]; T("EVN-4", "Provenance.reason[0]", C(reason, 1)); }
+        const ops = [];
+        reps(F(seg, 5)).forEach((r, k) => { const pr = practRef(r, "EVN-5[" + (k + 1) + "]"); if (pr) ops.push({ who: { reference: pr.reference } }); });
+        const evnFac = C(F(seg, 7), 1);
+        if (evnFac) { const or = orgRef(evnFac, "", "EVN-7"); if (or) ops.push({ who: { reference: or.reference } }); }
+        prov.agent = ops.length ? ops : [{ who: clean({ display: sendApp || sendFac || "sending application" }) }];
+        T("EVN-5/7", "Provenance.agent", prov.agent.length + " agent(s)");
+        add(prov, "provenance|" + (ctrlId || i));
+        break;
+      }
+      case "PID": {
+        I("warn", "PID", "A second PID at line " + (i + 1) + " was not converted — this mapping handles one patient per message.");
+        break;
+      }
+      case "MRG": {
+        const prior = cx(one(seg, 1));
+        if (!prior) { I("warn", "MRG-1", "MRG segment with no prior identifier; nothing to link."); break; }
+        const priorPat = { resourceType: "Patient", active: false, identifier: [prior] };
+        const priorName = xpn(one(seg, 7));
+        if (priorName) priorPat.name = [priorName];
+        const priorRef = add(priorPat, "patient|" + prior.value);
+        T("MRG-1", "Patient.identifier (superseded record)", prior.value);
+        if (patientRef) {
+          patientRef.resource.link = [{ other: { reference: priorRef.reference }, type: "replaces" }];
+          priorPat.link = [{ other: { reference: patientRef.reference }, type: "replaced-by" }];
+          T("MRG-1", "Patient.link[0]", "replaces " + prior.value);
+        } else I("warn", "MRG", "MRG appeared before PID; the surviving patient could not be linked.");
+        focus.push({ reference: priorRef.reference });
+        break;
+      }
+      case "PV1": {
+        I("warn", "PV1", "A second PV1 at line " + (i + 1) + " was not converted — this mapping handles one encounter per message.");
+        break;
+      }
+      case "AL1": {
+        const a = { resourceType: "AllergyIntolerance", clinicalStatus: { coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", code: "active" }] } };
+        const typ = C(F(seg, 2), 1).toUpperCase();
+        if (typ) {
+          if (ALLERGY_CAT[typ]) a.category = [ALLERGY_CAT[typ]];
+          else I("info", "AL1-2", "Allergen type " + JSON.stringify(typ) + " has no FHIR category; category omitted.");
+          T("AL1-2", "AllergyIntolerance.category[0]", typ + (ALLERGY_CAT[typ] ? " → " + ALLERGY_CAT[typ] : " (unmapped)"));
+        }
+        const allergen = one(seg, 3);
+        a.code = ce(allergen) || { text: "Unspecified allergen" };
+        T("AL1-3", "AllergyIntolerance.code", C(allergen, 1) || C(allergen, 2));
+        const sev = C(F(seg, 4), 1).toUpperCase();
+        if (sev) {
+          const crit = (sev === "SV" || sev === "SEVERE") ? "high" : (sev === "MO" || sev === "MODERATE") ? "low" : (sev === "MI" || sev === "MILD") ? "low" : undefined;
+          if (crit) a.criticality = crit;
+          T("AL1-4", "AllergyIntolerance.criticality", sev + (crit ? " → " + crit : " (unmapped)"));
+        }
+        const reaction = P(one(seg, 5));
+        if (reaction) {
+          a.reaction = [clean({
+            manifestation: [{ text: reaction }],
+            severity: (sev === "SV" || sev === "SEVERE") ? "severe" : (sev === "MO" || sev === "MODERATE") ? "moderate" : (sev === "MI" || sev === "MILD") ? "mild" : undefined,
+          })];
+          T("AL1-5", "AllergyIntolerance.reaction[0].manifestation[0].text", reaction);
+        }
+        const idDate = P(one(seg, 6));
+        if (idDate) { a.recordedDate = ts2fhir(idDate); T("AL1-6", "AllergyIntolerance.recordedDate", a.recordedDate); }
+        if (patientRef) a.patient = { reference: patientRef.reference };
+        else I("error", "AL1", "AllergyIntolerance.patient is required but no PID preceded this AL1.");
+        noteTarget = { resource: a, field: "note" };
+        add(a, "allergy|" + (patientRef ? patientRef.reference : i) + "|" + C(allergen, 1) + i);
+        break;
+      }
+      case "DG1": {
+        const c = { resourceType: "Condition" };
+        const codeRaw = one(seg, 3);
+        c.code = ce(codeRaw) || (P(one(seg, 4)) ? { text: P(one(seg, 4)) } : { text: "Unspecified diagnosis" });
+        if (P(one(seg, 4)) && c.code && !c.code.text) c.code.text = P(one(seg, 4));
+        T("DG1-3", "Condition.code", C(codeRaw, 1) || P(one(seg, 4)));
+        const dgMethod = C(F(seg, 2), 1);
+        if (dgMethod) T("DG1-2", "Condition.code.coding[0].system", dgMethod, "coding method folded into the code system URI");
+        if (P(one(seg, 4))) T("DG1-4", "Condition.code.text", P(one(seg, 4)));
+        const when = P(one(seg, 5));
+        if (when) { c.onsetDateTime = ts2fhir(when); T("DG1-5", "Condition.onsetDateTime", c.onsetDateTime); }
+        const dgType = C(F(seg, 6), 1);
+        c.category = [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "encounter-diagnosis", display: "Encounter Diagnosis" }] }];
+        if (dgType) { c.category[0].coding.push({ system: V2("0052"), code: dgType }); T("DG1-6", "Condition.category[0].coding[1]", dgType); }
+        const prio = C(F(seg, 15), 1);
+        if (prio) { c.extension = [{ url: "http://hl7.org/fhir/StructureDefinition/condition-diagnosisRank", valuePositiveInt: parseInt(prio, 10) || 1 }]; T("DG1-15", "Condition.extension[condition-diagnosisRank]", prio); }
+        reps(F(seg, 16)).forEach((r, k) => { const pr = practRef(r, "DG1-16[" + (k + 1) + "]"); if (pr) c.asserter = { reference: pr.reference }; });
+        const attest = P(one(seg, 19));
+        if (attest) { c.recordedDate = ts2fhir(attest); T("DG1-19", "Condition.recordedDate", c.recordedDate); }
+        if (patientRef) c.subject = { reference: patientRef.reference };
+        else I("error", "DG1", "Condition.subject is required but no PID preceded this DG1.");
+        if (encRef) c.encounter = { reference: encRef.reference };
+        noteTarget = { resource: c, field: "note" };
+        add(c, "condition|" + (patientRef ? patientRef.reference : i) + "|" + (C(codeRaw, 1) || i) + i);
+        break;
+      }
+      case "IN1": {
+        const cov = { resourceType: "Coverage", status: "active" };
+        const planId = one(seg, 2), coName = P(one(seg, 4)), coId = C(F(seg, 3), 1);
+        if (planId) { cov.type = ce(planId); T("IN1-2", "Coverage.type", C(planId, 1)); }
+        const or = orgRef(coName, coId, "IN1-3/4");
+        if (or) { cov.payor = [{ reference: or.reference }]; T("IN1-4", "Coverage.payor[0]", coName || coId); }
+        else I("warn", "IN1-4", "Coverage.payor is required in FHIR but IN1-3/IN1-4 carry no insurer.");
+        const grp = C(F(seg, 8), 1), grpName = P(one(seg, 9));
+        if (grp || grpName) {
+          cov.class = [clean({ type: { coding: [{ system: "http://terminology.hl7.org/CodeSystem/coverage-class", code: "group" }] }, value: grp || grpName, name: grpName || undefined })];
+          T("IN1-8/9", "Coverage.class[0]", grp || grpName);
+        }
+        const eff = P(one(seg, 12)), exp = P(one(seg, 13));
+        if (eff || exp) { cov.period = clean({ start: ts2date(eff), end: ts2date(exp) }); T("IN1-12/13", "Coverage.period", (ts2date(eff) || "?") + " → " + (ts2date(exp) || "?")); }
+        const polNum = C(F(seg, 36), 1);
+        if (polNum) { cov.identifier = [{ value: polNum }]; T("IN1-36", "Coverage.identifier[0]", polNum); }
+        const rel = C(F(seg, 17), 1);
+        if (rel) { cov.relationship = { coding: [clean({ system: V2("0063"), code: rel, display: C(one(seg, 17), 2) || undefined })] }; T("IN1-17", "Coverage.relationship", rel); }
+        if (patientRef) { cov.beneficiary = { reference: patientRef.reference }; cov.subscriber = { reference: patientRef.reference }; }
+        else I("error", "IN1", "Coverage.beneficiary is required but no PID preceded this IN1.");
+        add(cov, "coverage|" + (polNum || coName || i) + i);
+        noteTarget = null;
+        break;
+      }
+      case "ORC": {
+        orderSeq++;
+        const sr = { resourceType: "ServiceRequest", status: "active", intent: "order" };
+        const ctl = C(F(seg, 1), 1).toUpperCase();
+        if (ctl) {
+          sr.status = ORDER_STATUS[ctl] || "unknown";
+          T("ORC-1", "ServiceRequest.status", ctl + " → " + sr.status, tblDisplay("0119", ctl) || "not in table 0119");
+          if (!ORDER_STATUS[ctl]) I("warn", "ORC-1", "Order control " + JSON.stringify(ctl) + " has no status mapping; ServiceRequest.status set to unknown.");
+        }
+        const st5 = C(F(seg, 5), 1).toUpperCase();
+        if (st5) {
+          const m5 = { A: "active", CA: "revoked", CM: "completed", DC: "revoked", ER: "entered-in-error", HD: "on-hold", IP: "active", SC: "active", RP: "revoked" }[st5];
+          if (m5) sr.status = m5;
+          sr.extension = (sr.extension || []).concat([{ url: LOCAL_CS + "ORC-5-order-status", valueCode: st5 }]);
+          T("ORC-5", "ServiceRequest.status + extension[ORC-5]", st5 + (m5 ? " → " + m5 : " (no status mapping; kept as an extension)"));
+        }
+        const ids = [];
+        const placer = C(F(seg, 2), 1), filler = C(F(seg, 3), 1), grp = C(F(seg, 4), 1);
+        if (placer) { ids.push(clean({ type: { coding: [{ system: V2("0203"), code: "PLAC" }] }, value: placer, system: C(F(seg, 2), 2) ? LOCAL_NS + C(F(seg, 2), 2) : undefined })); T("ORC-2", "ServiceRequest.identifier[placer]", placer); }
+        if (filler) { ids.push(clean({ type: { coding: [{ system: V2("0203"), code: "FILL" }] }, value: filler, system: C(F(seg, 3), 2) ? LOCAL_NS + C(F(seg, 3), 2) : undefined })); T("ORC-3", "ServiceRequest.identifier[filler]", filler); }
+        if (grp) { ids.push({ type: { coding: [{ system: V2("0203"), code: "PGN" }] }, value: grp }); T("ORC-4", "ServiceRequest.requisition", grp); sr.requisition = { value: grp }; }
+        if (ids.length) sr.identifier = ids;
+        const trans = P(one(seg, 9));
+        if (trans) { sr.authoredOn = ts2fhir(trans); T("ORC-9", "ServiceRequest.authoredOn", sr.authoredOn); }
+        reps(F(seg, 12)).forEach((r, k) => { const pr = practRef(r, "ORC-12[" + (k + 1) + "]"); if (pr && !sr.requester) { sr.requester = { reference: pr.reference }; T("ORC-12", "ServiceRequest.requester", C(r, 2)); } });
+        const effective = P(one(seg, 15));
+        if (effective) { sr.occurrenceDateTime = ts2fhir(effective); T("ORC-15", "ServiceRequest.occurrenceDateTime", sr.occurrenceDateTime); }
+        const orcReason = one(seg, 16);
+        if (orcReason) { sr.reasonCode = [ce(orcReason)]; T("ORC-16", "ServiceRequest.reasonCode[0]", C(orcReason, 1)); }
+        if (patientRef) sr.subject = { reference: patientRef.reference };
+        else I("error", "ORC", "ServiceRequest.subject is required but no PID preceded this ORC.");
+        if (encRef) sr.encounter = { reference: encRef.reference };
+        curOrder = add(sr, "order|" + (placer || filler || orderSeq));
+        focus.push({ reference: curOrder.reference });
+        curReport = null;
+        noteTarget = { resource: sr, field: "note" };
+        break;
+      }
+      case "OBR": {
+        const placer = C(F(seg, 2), 1), filler = C(F(seg, 3), 1);
+        const codeRaw = one(seg, 4);
+        const resultStatus = C(F(seg, 25), 1).toUpperCase();
+        const isResult = mt.code === "ORU" || (resultStatus && mt.code !== "ORM");
+
+        /* the order side — either enrich the ORC we just saw, or stand one up */
+        let sr = curOrder ? curOrder.resource : null;
+        if (!sr && !isResult) {
+          sr = { resourceType: "ServiceRequest", status: "active", intent: "order" };
+          if (patientRef) sr.subject = { reference: patientRef.reference };
+          if (encRef) sr.encounter = { reference: encRef.reference };
+          curOrder = add(sr, "order|" + (placer || filler || ++orderSeq));
+          focus.push({ reference: curOrder.reference });
+          I("info", "OBR", "OBR with no preceding ORC; a ServiceRequest was created from the OBR alone.");
+        }
+        if (sr) {
+          sr.identifier = sr.identifier || [];
+          const has = (v) => sr.identifier.some((x) => x.value === v);
+          if (placer && !has(placer)) { sr.identifier.push({ type: { coding: [{ system: V2("0203"), code: "PLAC" }] }, value: placer }); T("OBR-2", "ServiceRequest.identifier[placer]", placer); }
+          if (filler && !has(filler)) { sr.identifier.push({ type: { coding: [{ system: V2("0203"), code: "FILL" }] }, value: filler }); T("OBR-3", "ServiceRequest.identifier[filler]", filler); }
+          if (!sr.identifier.length) delete sr.identifier;
+          if (codeRaw) { sr.code = ce(codeRaw); T("OBR-4", "ServiceRequest.code", C(codeRaw, 1) + " " + C(codeRaw, 2)); }
+          const requested = P(one(seg, 6)), sched = P(one(seg, 36));
+          if (sched) { sr.occurrenceDateTime = ts2fhir(sched); T("OBR-36", "ServiceRequest.occurrenceDateTime", sr.occurrenceDateTime); }
+          else if (requested) { sr.occurrenceDateTime = ts2fhir(requested); T("OBR-6", "ServiceRequest.occurrenceDateTime", sr.occurrenceDateTime); }
+          reps(F(seg, 16)).forEach((r, k) => { const pr = practRef(r, "OBR-16[" + (k + 1) + "]"); if (pr && !sr.requester) { sr.requester = { reference: pr.reference }; T("OBR-16", "ServiceRequest.requester", C(r, 2)); } });
+          const clinInfo = P(one(seg, 13));
+          if (clinInfo) { sr.note = (sr.note || []).concat([{ text: clinInfo }]); T("OBR-13", "ServiceRequest.note", clinInfo); }
+          const reasons = reps(F(seg, 31)).map((r) => ce(r)).filter(Boolean);
+          if (reasons.length) { sr.reasonCode = (sr.reasonCode || []).concat(reasons); T("OBR-31", "ServiceRequest.reasonCode", reasons.map((r) => (r.coding && r.coding[0] && r.coding[0].code) || r.text).join(", ")); }
+          const danger = one(seg, 12);
+          if (danger) { sr.note = (sr.note || []).concat([{ text: "Danger code: " + (C(danger, 2) || C(danger, 1)) }]); T("OBR-12", "ServiceRequest.note", C(danger, 2) || C(danger, 1)); }
+          const sect = C(F(seg, 24), 1);
+          if (sect) { sr.category = [{ coding: [clean({ system: V2("0074"), code: sect, display: tblDisplay("0074", sect) })] }]; T("OBR-24", "ServiceRequest.category[0]", sect); }
+          const spec = C(F(seg, 11), 1);
+          if (spec) { sr.extension = (sr.extension || []).concat([{ url: LOCAL_CS + "OBR-11-specimen-action", valueCode: spec }]); T("OBR-11", "ServiceRequest.extension[OBR-11]", spec, "no core FHIR element for specimen action"); }
+        }
+
+        /* the result side */
+        if (isResult) {
+          const dr = { resourceType: "DiagnosticReport", status: "final" };
+          if (resultStatus) {
+            dr.status = RPT_STATUS[resultStatus] || "unknown";
+            T("OBR-25", "DiagnosticReport.status", resultStatus + " → " + dr.status, tblDisplay("0123", resultStatus) || "not in table 0123");
+            if (!RPT_STATUS[resultStatus]) I("warn", "OBR-25", "Result status " + JSON.stringify(resultStatus) + " is not in table 0123; DiagnosticReport.status set to unknown.");
+          } else I("warn", "OBR-25", "No result status in OBR-25; DiagnosticReport.status defaulted to final.");
+          const drIds = [];
+          if (placer) drIds.push({ type: { coding: [{ system: V2("0203"), code: "PLAC" }] }, value: placer });
+          if (filler) drIds.push({ type: { coding: [{ system: V2("0203"), code: "FILL" }] }, value: filler });
+          if (drIds.length) dr.identifier = drIds;
+          dr.code = ce(codeRaw) || { text: "Unidentified study" };
+          T("OBR-4", "DiagnosticReport.code", C(codeRaw, 1) + " " + C(codeRaw, 2));
+          const sect = C(F(seg, 24), 1);
+          if (sect) { dr.category = [{ coding: [clean({ system: V2("0074"), code: sect, display: tblDisplay("0074", sect) })] }]; T("OBR-24", "DiagnosticReport.category[0]", sect); }
+          const obsTime = P(one(seg, 7)), obsEnd = P(one(seg, 8));
+          if (obsTime && obsEnd) { dr.effectivePeriod = clean({ start: ts2fhir(obsTime), end: ts2fhir(obsEnd) }); T("OBR-7/8", "DiagnosticReport.effectivePeriod", ts2fhir(obsTime) + " → " + ts2fhir(obsEnd)); }
+          else if (obsTime) { dr.effectiveDateTime = ts2fhir(obsTime); T("OBR-7", "DiagnosticReport.effectiveDateTime", dr.effectiveDateTime); }
+          const issued = P(one(seg, 22));
+          if (issued) { dr.issued = ts2fhir(issued) + (tsHasOffset(issued) ? "" : "Z"); T("OBR-22", "DiagnosticReport.issued", dr.issued); }
+          const interp = [];
+          reps(F(seg, 32)).forEach((r, k) => { const pr = practRef(r, "OBR-32[" + (k + 1) + "]"); if (pr) interp.push({ reference: pr.reference }); });
+          if (interp.length) { dr.resultsInterpreter = interp; T("OBR-32", "DiagnosticReport.resultsInterpreter", interp.length + " reference(s)"); }
+          const techs = [];
+          reps(F(seg, 34)).forEach((r, k) => { const pr = practRef(r, "OBR-34[" + (k + 1) + "]"); if (pr) techs.push({ reference: pr.reference }); });
+          if (techs.length) { dr.performer = techs; T("OBR-34", "DiagnosticReport.performer", techs.length + " reference(s)"); }
+          if (patientRef) dr.subject = { reference: patientRef.reference };
+          else I("error", "OBR", "DiagnosticReport.subject is required but no PID preceded this OBR.");
+          if (encRef) dr.encounter = { reference: encRef.reference };
+          if (curOrder) dr.basedOn = [{ reference: curOrder.reference }];
+          curReport = add(dr, "report|" + (filler || placer || ++orderSeq));
+          focus.push({ reference: curReport.reference });
+          noteTarget = { resource: dr, field: "conclusion" };
+        } else {
+          noteTarget = curOrder ? { resource: curOrder.resource, field: "note" } : null;
+        }
+        break;
+      }
+      case "OBX": {
+        obsSeq++;
+        const o = obxToObservation(seg, obsSeq);
+        if (curReport) o.basedOn = curReport.resource.basedOn;
+        const ref = add(o, "obs|" + (curReport ? curReport.reference : (patientRef ? patientRef.reference : "")) + "|" + obsSeq);
+        if (curReport) {
+          curReport.resource.result = (curReport.resource.result || []).concat([{ reference: ref.reference }]);
+          T("OBX", "DiagnosticReport.result[" + (curReport.resource.result.length - 1) + "]", (o.code && o.code.text) || "observation");
+        } else {
+          focus.push({ reference: ref.reference });
+        }
+        noteTarget = { resource: o, field: "note" };
+        break;
+      }
+      case "NTE": {
+        const txt = reps(F(seg, 3)).map((r) => P(r)).join("\n") || P(F(seg, 3));
+        if (!txt) break;
+        if (noteTarget && noteAppend(noteTarget, noteTarget.field, txt)) {
+          T("NTE-3", noteTarget.resource.resourceType + "." + noteTarget.field, txt.length > 70 ? txt.slice(0, 70) + "…" : txt);
+        } else {
+          I("warn", "NTE", "NTE at line " + (i + 1) + " follows a segment with nowhere to put a note (" + (noteTarget ? noteTarget.resource.resourceType : "no preceding mappable segment") + "); the text was dropped.");
+        }
+        break;
+      }
+      case "SCH": {
+        const ap = { resourceType: "Appointment", status: "booked" };
+        const placer = C(F(seg, 1), 1), filler = C(F(seg, 2), 1);
+        const ids = [];
+        if (placer) ids.push({ type: { coding: [{ system: V2("0203"), code: "PLAC" }] }, value: placer });
+        if (filler) ids.push({ type: { coding: [{ system: V2("0203"), code: "FILL" }] }, value: filler });
+        if (ids.length) { ap.identifier = ids; T("SCH-1/2", "Appointment.identifier", ids.map((x) => x.value).join(", ")); }
+        const fs25 = C(F(seg, 25), 1);
+        if (fs25) {
+          ap.status = APPT_STATUS[fs25] || APPT_STATUS[fs25.charAt(0).toUpperCase() + fs25.slice(1).toLowerCase()] || "booked";
+          T("SCH-25", "Appointment.status", fs25 + " → " + ap.status);
+        }
+        const reason = one(seg, 7);
+        if (reason) { ap.reasonCode = [ce(reason)]; T("SCH-7", "Appointment.reasonCode[0]", C(reason, 1)); }
+        const apType = one(seg, 8);
+        if (apType) { ap.appointmentType = ce(apType); T("SCH-8", "Appointment.appointmentType", C(apType, 1)); }
+        const tq = one(seg, 11);
+        const durField = C(F(seg, 9), 1), durUnits = C(F(seg, 10), 1);
+        const start = C(tq, 4), end = C(tq, 5), dur = C(tq, 3) || durField;
+        if (durUnits && durUnits !== "MIN" && dur) I("info", "SCH-10", "Appointment duration is in " + durUnits + "; Appointment.minutesDuration assumes minutes.");
+        if (start) { ap.start = ts2fhir(start) + (tsHasOffset(start) ? "" : "Z"); T("SCH-11.4", "Appointment.start", ap.start); }
+        if (end) { ap.end = ts2fhir(end) + (tsHasOffset(end) ? "" : "Z"); T("SCH-11.5", "Appointment.end", ap.end); }
+        if (dur) { ap.minutesDuration = parseInt(dur, 10) || undefined; T("SCH-9/11.3", "Appointment.minutesDuration", dur); }
+        const parts = [];
+        if (patientRef) parts.push({ actor: { reference: patientRef.reference }, status: "accepted", required: "required" });
+        ap.participant = parts.length ? parts : [{ status: "needs-action", actor: { display: "unspecified" } }];
+        if (!patientRef) I("warn", "SCH", "Appointment.participant needs at least one actor; no PID preceded this SCH.");
+        const evReason = one(seg, 6);
+        if (evReason) { ap.comment = C(evReason, 2) || C(evReason, 1); T("SCH-6", "Appointment.comment", ap.comment); }
+        const apRef = add(ap, "appointment|" + (placer || filler || i));
+        focus.push({ reference: apRef.reference });
+        noteTarget = { resource: ap, field: "comment" };
+        break;
+      }
+      case "MSA": {
+        const ackCode = C(F(seg, 1), 1).toUpperCase();
+        const ackId = C(F(seg, 2), 1);
+        const respCode = { AA: "ok", CA: "ok", AE: "transient-error", CE: "transient-error", AR: "fatal-error", CR: "fatal-error" }[ackCode] || "transient-error";
+        mh.response = clean({ identifier: ackId || "unknown", code: respCode });
+        T("MSA-1", "MessageHeader.response.code", ackCode + " → " + respCode, tblDisplay("0008", ackCode) || "");
+        T("MSA-2", "MessageHeader.response.identifier", ackId);
+        const txtMsg = P(one(seg, 3));
+        if (txtMsg) {
+          const oo = { resourceType: "OperationOutcome", issue: [{ severity: respCode === "ok" ? "information" : "error", code: "processing", details: { coding: [{ system: LOCAL_CS + "MSA-3", code: "text-message" }] }, diagnostics: txtMsg }] };
+          const ooRef = add(oo, "outcome|msa|" + (ackId || i));
+          mh.response.details = { reference: ooRef.reference };
+          T("MSA-3", "OperationOutcome.issue[0].diagnostics", txtMsg, "MSA-3 is deprecated in v2.5.1");
+        }
+        break;
+      }
+      case "ERR": {
+        const hl7Code = one(seg, 3);
+        const sevCode = C(F(seg, 4), 1).toUpperCase();
+        const oo = {
+          resourceType: "OperationOutcome",
+          issue: [clean({
+            severity: { E: "error", W: "warning", I: "information", F: "fatal" }[sevCode] || "error",
+            code: "processing",
+            details: ce(hl7Code) || undefined,
+            diagnostics: P(one(seg, 7)) || undefined,
+            expression: C(F(seg, 2), 1) ? [P(one(seg, 2))] : undefined,
+          })],
+        };
+        const userMsg = P(one(seg, 8));
+        if (userMsg) { oo.issue[0].extension = [{ url: LOCAL_CS + "ERR-8-user-message", valueString: userMsg }]; T("ERR-8", "OperationOutcome.issue[0].extension[ERR-8]", userMsg); }
+        const ooRef = add(oo, "outcome|err|" + i);
+        T("ERR-3", "OperationOutcome.issue[0].details", C(hl7Code, 1) + " " + C(hl7Code, 2));
+        T("ERR-4", "OperationOutcome.issue[0].severity", sevCode + " → " + oo.issue[0].severity);
+        if (mh.response) mh.response.details = { reference: ooRef.reference };
+        focus.push({ reference: ooRef.reference });
+        break;
+      }
+      case "ZDS": {
+        const uid = C(F(seg, 1), 1);
+        const target = curReport || curOrder;
+        if (uid && target) {
+          target.resource.identifier = (target.resource.identifier || []).concat([{ system: "urn:dicom:uid", value: "urn:oid:" + uid }]);
+          T("ZDS-1", target.resource.resourceType + ".identifier[dicom]", "urn:oid:" + uid, "Study Instance UID");
+        } else if (uid) {
+          I("warn", "ZDS", "ZDS Study Instance UID " + uid + " has no order or report to attach to.");
+        }
+        break;
+      }
+      default:
+        I("info", seg.name, "Segment " + seg.name + " is not part of the mapped set" +
+          (HL7_SPEC[seg.name] ? "" : " and is not in the v2.5.1 reference used here") + "; its content was not converted.");
+        break;
+    }
+  });
+
+  /* ── assemble the Bundle ── */
+  const seenFocus = new Set();
+  mh.focus = focus.filter((f) => (seenFocus.has(f.reference) ? false : seenFocus.add(f.reference)));
+  if (!mh.focus.length) delete mh.focus;
+
+  const bundle = { resourceType: "Bundle", id: stableUuid("bundle|" + msg.raw), type: "message" };
+  if (ctrlId) bundle.identifier = { system: LOCAL_NS + (sendFac || "sender"), value: ctrlId };
+  const ts = ts2fhir(msgTime);
+  if (ts && ts.length > 10) bundle.timestamp = ts + (tsHasOffset(msgTime) ? "" : "Z");
+  else if (ts) I("info", "MSH-7", "MSH-7 carries a date but no time, so Bundle.timestamp was left out — an instant needs a time.");
+  bundle.entry = entries;
+
+  /* ── what did not make it across ── */
+  const lossy = [];
+  segs.forEach((seg) => {
+    if (seg.malformed) return;
+    const spec = HL7_SPEC[seg.name];
+    for (let n = 1; n < seg.f.length; n++) {
+      if (seg.name === "MSH" && (n === 1 || n === 2)) continue;   /* separators, not data */
+      const v = seg.f[n];
+      if (v === undefined || v === "") continue;
+      if (seg.seen.has(n)) continue;
+      lossy.push({
+        field: seg.name + "-" + n,
+        label: (spec && spec.f[n]) || "(not in the v2.5.1 reference)",
+        value: P(v),
+      });
+    }
+  });
+
+  /* ── message anatomy + structure check ── */
+  const expected = structKey ? HL7_STRUCTURES[structKey].s.map((x) => ({
+    seg: x.replace(/[*+]/g, ""), required: x.indexOf("*") >= 0, repeats: x.indexOf("+") >= 0,
+  })) : null;
+  segs.forEach((seg, i) => {
+    const spec = HL7_SPEC[seg.name];
+    let populated = 0;
+    for (let n = 1; n < seg.f.length; n++) if (seg.f[n]) populated++;
+    const mappedCount = Array.from(seg.seen).filter((n) => seg.f[n]).length;
+    anatomy.push({
+      line: i + 1, seg: seg.name, name: (spec && spec.name) || "—",
+      populated, mapped: mappedCount,
+      known: expected ? expected.some((e) => e.seg === seg.name) : null,
+    });
+  });
+  if (expected) {
+    const present = new Set(segs.map((s) => s.name));
+    expected.filter((e) => e.required && !present.has(e.seg)).forEach((e) => {
+      I("error", structKey, "Required segment " + e.seg + " is missing from this " + structKey + ".");
+    });
+    segs.forEach((s) => {
+      if (!expected.some((e) => e.seg === s.name) && !s.malformed) {
+        I("info", s.name, s.name + " is not part of the " + structKey + " structure.");
+      }
+    });
+    /* order check — segments should appear in the sequence the structure defines */
+    const order = expected.map((e) => e.seg);
+    let cursor = 0, outOfOrder = null;
+    segs.forEach((s) => {
+      if (order.indexOf(s.name) < 0) return;
+      const at = order.indexOf(s.name, cursor);          /* a repeat later in the structure is still in order */
+      if (at < 0) { if (!outOfOrder) outOfOrder = s.name; return; }
+      cursor = at;
+    });
+    if (outOfOrder) I("warn", structKey, "Segment " + outOfOrder + " appears out of the order defined for " + structKey + ". Conversion still ran, but a strict receiver may reject the message.");
+  }
+
+  return { bundle, trace, issues, lossy, anatomy, structKey, kind: "fhir" };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. FHIR R4 → HL7 v2.5.1
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function fhirToHl7(text) {
+  let doc;
+  try { doc = JSON.parse(text); }
+  catch (e) {
+    throw ConvError("That is not valid JSON (" + e.message + "). If you meant to convert an HL7 v2 message, switch the direction above.");
+  }
+  if (!doc || typeof doc !== "object" || Array.isArray(doc) || !doc.resourceType) {
+    throw ConvError("JSON with no resourceType — expected a FHIR Bundle or a single resource.");
+  }
+
+  const enc = DEFAULT_ENC;
+  const trace = [], issues = [];
+  const T = (src, dst, val, note) => { if (val !== "" && val !== undefined && val !== null) trace.push({ src, dst, val: String(val), note: note || "" }); };
+  const I = (sev, where, txt) => issues.push({ sev, where, text: txt });
+
+  /* every element read is recorded, so untouched ones surface in the loss report */
+  const usedMap = new Map();
+  const U = (res) => {
+    if (!res || typeof res !== "object") return () => undefined;
+    if (!usedMap.has(res)) usedMap.set(res, new Set());
+    const set = usedMap.get(res);
+    return (k) => { set.add(k); return res[k]; };
+  };
+  const touch = (res, k) => { U(res)(k); };
+
+  const entries = doc.resourceType === "Bundle" ? (doc.entry || []) : [{ resource: doc }];
+  const resources = entries.map((e) => e && e.resource).filter((r) => r && r.resourceType);
+  if (!resources.length) throw ConvError("The Bundle has no entries with resources in them.");
+  if (doc.resourceType === "Bundle") { touch(doc, "entry"); touch(doc, "type"); }
+
+  const index = new Map();
+  entries.forEach((e) => {
+    if (!e || !e.resource) return;
+    if (e.fullUrl) index.set(e.fullUrl, e.resource);
+    if (e.resource.id) index.set(e.resource.resourceType + "/" + e.resource.id, e.resource);
+  });
+  const deref = (r) => {
+    if (!r) return null;
+    const ref = typeof r === "string" ? r : r.reference;
+    if (!ref) return null;
+    return index.get(ref) || (ref.indexOf("#") === 0 ? null : index.get(ref.replace(/^.*\/([A-Za-z]+\/[^/]+)$/, "$1"))) || null;
+  };
+  const R = (t) => resources.filter((r) => r.resourceType === t);
+
+  /* ── FHIR datatype → v2 composite ── */
+  const cmp = function () {
+    const parts = Array.prototype.slice.call(arguments).map((p) => (p === undefined || p === null ? "" : String(p)));
+    while (parts.length && parts[parts.length - 1] === "") parts.pop();
+    return parts.map((p) => escapeHL7(p, enc)).join(enc.cs);
+  };
+  const joinRep = (arr) => arr.filter((x) => x !== "" && x !== undefined && x !== null).join(enc.rs);
+  const ccToCe = (cc) => {
+    if (!cc) return "";
+    const c0 = (cc.coding || [])[0] || {}, c1 = (cc.coding || [])[1] || {};
+    if (!c0.code && cc.text) return cmp("", cc.text);
+    return cmp(c0.code, c0.display || cc.text, csName(c0.system), c1.code, c1.display, csName(c1.system));
+  };
+  const nameToXpn = (n) => {
+    if (!n) return "";
+    const g = n.given || [];
+    return cmp(n.family, g[0], g[1], (n.suffix || [])[0], (n.prefix || [])[0], "", NAME_USE_REV[n.use] || "");
+  };
+  const addrToXad = (a) => {
+    if (!a) return "";
+    const l = a.line || [];
+    return cmp(l[0], l[1], a.city, a.state, a.postalCode, a.country, ADDR_USE_REV[a.use] || "");
+  };
+  const telToXtn = (t) => {
+    if (!t || !t.value) return "";
+    if (t.system === "email") return cmp("", "NET", "Internet", t.value);
+    const use = t.use === "work" ? "WPN" : t.use === "temp" ? "EMR" : "PRN";
+    const eqp = t.system === "fax" ? "FX" : t.system === "pager" ? "BP" : t.use === "mobile" ? "CP" : "PH";
+    return cmp(t.value, use, eqp);
+  };
+  const idToCx = (id) => {
+    if (!id || !id.value) return "";
+    const auth = id.system && id.system.indexOf(LOCAL_NS) === 0 ? id.system.slice(LOCAL_NS.length) : "";
+    const typ = ((id.type || {}).coding || [])[0] || {};
+    return cmp(id.value, "", "", auth, typ.code);
+  };
+  const idToEi = (id) => {
+    if (!id || !id.value) return "";
+    const ns = id.system && id.system.indexOf(LOCAL_NS) === 0 ? id.system.slice(LOCAL_NS.length) : "";
+    return cmp(id.value, ns);
+  };
+  const refToXcn = (ref) => {
+    const pr = deref(ref);
+    if (!pr) return ref && ref.display ? cmp("", ref.display) : "";
+    const u = U(pr);
+    const nm = (u("name") || [])[0] || {};
+    const idv = ((u("identifier") || [])[0] || {}).value;
+    const g = nm.given || [];
+    const degree = (((u("qualification") || [])[0] || {}).code || {}).text;
+    return cmp(idv, nm.family, g[0], g[1], (nm.suffix || [])[0], (nm.prefix || [])[0], degree);
+  };
+  const refToPl = (ref) => {
+    const loc = deref(ref);
+    if (!loc) return "";
+    const u = U(loc);
+    const desc = u("description") || "";
+    const grab = (label) => { const m = new RegExp(label + " ([^,]+)").exec(desc); return m ? m[1].trim() : ""; };
+    const poc = grab("unit"), room = grab("room"), bed = grab("bed"), fac = grab("facility");
+    u("name"); u("physicalType");
+    if (!poc && !room && !bed && !fac) return cmp(loc.name);
+    return cmp(poc, room, bed, fac);
+  };
+  const idType = (list, code) => (list || []).find((x) => (((x.type || {}).coding || [])[0] || {}).code === code);
+
+  /* ── segment scaffolding ── */
+  const segments = [];
+  function seg(name) {
+    const s = { name, f: [name] };
+    s.set = function (n, v) { if (v === undefined || v === null || v === "") return s; s.f[n] = v; return s; };
+    segments.push(s);
+    return s;
+  }
+  function render(lineSep) {
+    return segments.map((s) => {
+      const parts = [];
+      const start = s.name === "MSH" ? 3 : 1;
+      for (let n = start; n < s.f.length; n++) parts.push(s.f[n] === undefined ? "" : s.f[n]);
+      while (parts.length && parts[parts.length - 1] === "") parts.pop();
+      return (s.name === "MSH" ? "MSH" + enc.fs + "^~\\&" : s.name) + (parts.length ? enc.fs + parts.join(enc.fs) : "");
+    }).join(lineSep);
+  }
+
+  /* ── which message are we building? ── */
+  const mhRes = R("MessageHeader")[0];
+  const patients = R("Patient");
+  const priorPatient = patients.find((p) => (p.link || []).some((l) => l.type === "replaced-by"));
+  const patient = patients.find((p) => p !== priorPatient) || patients[0] || null;
+  const encounter = R("Encounter")[0] || null;
+  const reports = R("DiagnosticReport");
+  const orders = R("ServiceRequest");
+  const observations = R("Observation");
+  const appointments = R("Appointment");
+  const allergies = R("AllergyIntolerance");
+  const conditions = R("Condition");
+  const coverages = R("Coverage");
+  const outcomes = R("OperationOutcome");
+  const provenance = R("Provenance")[0] || null;
+
+  const EVENT_TO_TYPE = (ev) => {
+    if (!ev) return null;
+    if (/^A\d\d$/.test(ev)) return "ADT";
+    if (ev === "O01") return "ORM";
+    if (ev === "O02") return "ORR";
+    if (ev === "R01") return "ORU";
+    if (/^S\d\d$/.test(ev)) return "SIU";
+    return null;
+  };
+  const STRUCT_FOR = { A01: "ADT_A01", A04: "ADT_A01", A08: "ADT_A01", A13: "ADT_A01", A02: "ADT_A02", A03: "ADT_A03", A05: "ADT_A05", A28: "ADT_A05", A31: "ADT_A05", A11: "ADT_A09", A40: "ADT_A39", O01: "ORM_O01", O02: "ORR_O02", R01: "ORU_R01", S12: "SIU_S12" };
+
+  let mtCode = null, mtEvent = null;
+  if (mhRes) {
+    const u = U(mhRes);
+    const ev = (u("eventCoding") || {}).code;
+    mtEvent = ev || null;
+    mtCode = EVENT_TO_TYPE(ev);
+    if (u("response")) { mtCode = mtCode || "ACK"; }
+    T("MessageHeader.eventCoding.code", "MSH-9", ev || "(absent)");
+    if (ev && !mtCode) I("warn", "MessageHeader.eventCoding", "Event code " + JSON.stringify(ev) + " maps to no v2 message type in the reference set; the message type was inferred from the resources instead.");
+  }
+  if (!mtCode) {
+    if (outcomes.length && mhRes && mhRes.response) { mtCode = "ACK"; mtEvent = null; }
+    else if (reports.length) { mtCode = "ORU"; mtEvent = mtEvent || "R01"; }
+    else if (orders.length) { mtCode = "ORM"; mtEvent = mtEvent || "O01"; }
+    else if (appointments.length) { mtCode = "SIU"; mtEvent = mtEvent || "S12"; }
+    else { mtCode = "ADT"; mtEvent = mtEvent || "A08"; }
+    I("info", "MSH-9", "No usable MessageHeader event, so " + mtCode + (mtEvent ? "^" + mtEvent : "") + " was inferred from the resources present.");
+  }
+  if (mtCode === "ADT" && !mtEvent) mtEvent = "A08";
+  if (mtCode === "ORU" && !mtEvent) mtEvent = "R01";
+  if (mtCode === "ORM" && !mtEvent) mtEvent = "O01";
+  if (mtCode === "SIU" && !mtEvent) mtEvent = "S12";
+  const structKey = mtCode === "ACK" ? "ACK" : mtCode + "^" + mtEvent;
+
+  /* ── MSH ── */
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const nowTs = "" + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+  const parseEndpoint = (ep) => {
+    const m = /^urn:hl7v2:(?:sender|receiver):([^/]*)\/(.*)$/.exec(ep || "");
+    return m ? { fac: m[1] === "unknown" ? "" : m[1], app: m[2] === "unknown" ? "" : m[2] } : { fac: "", app: "" };
+  };
+  const msh = seg("MSH");
+  let sendApp = "", sendFac = "", rcvApp = "", rcvFac = "", procId = "", version = "";
+  if (mhRes) {
+    const u = U(mhRes);
+    const src = u("source") || {};
+    const ep = parseEndpoint(src.endpoint);
+    sendApp = src.name || ep.app; sendFac = ep.fac;
+    const dst = (u("destination") || [])[0] || {};
+    const dep = parseEndpoint(dst.endpoint);
+    rcvApp = dst.name || dep.app; rcvFac = dep.fac;
+    u("focus");
+    const tags = ((u("meta") || {}).tag) || [];
+    const ptag = tags.find((t) => t.system === V2("0103"));
+    const vtag = tags.find((t) => t.system === V2("0104"));
+    procId = ptag ? ptag.code : "";
+    version = vtag ? vtag.code : "";
+  } else {
+    I("info", "MessageHeader", "No MessageHeader in the input, so MSH is built from defaults (sending application FHIR_CONV, processing ID P).");
+  }
+  msh.set(3, escapeHL7(sendApp || "FHIR_CONV", enc)).set(4, escapeHL7(sendFac, enc))
+    .set(5, escapeHL7(rcvApp, enc)).set(6, escapeHL7(rcvFac, enc));
+  T("MessageHeader.source", "MSH-3/4", (sendApp || "FHIR_CONV") + (sendFac ? " @ " + sendFac : ""));
+  if (rcvApp || rcvFac) T("MessageHeader.destination[0]", "MSH-5/6", rcvApp + (rcvFac ? " @ " + rcvFac : ""));
+
+  let bundleTs = "";
+  if (doc.resourceType === "Bundle" && doc.timestamp) { touch(doc, "timestamp"); bundleTs = fhir2ts(doc.timestamp); T("Bundle.timestamp", "MSH-7", bundleTs); }
+  msh.set(7, bundleTs || nowTs);
+  if (!bundleTs) I("info", "MSH-7", "No Bundle.timestamp, so MSH-7 was stamped with the current local time.");
+  msh.set(9, mtCode === "ACK" ? "ACK" : cmp(mtCode, mtEvent || "", STRUCT_FOR[mtEvent] || ""));
+
+  let ctrlId = "";
+  if (doc.resourceType === "Bundle" && doc.identifier && doc.identifier.value) { touch(doc, "identifier"); ctrlId = doc.identifier.value; T("Bundle.identifier.value", "MSH-10", ctrlId); }
+  if (!ctrlId) {
+    ctrlId = "MSG" + stableUuid(JSON.stringify(doc).slice(0, 4000)).replace(/-/g, "").slice(0, 14).toUpperCase();
+    I("info", "MSH-10", "No Bundle.identifier, so a message control ID was derived from the content: " + ctrlId);
+  }
+  msh.set(10, escapeHL7(ctrlId, enc)).set(11, procId || "P").set(12, version || "2.5.1");
+  if (procId) T("MessageHeader.meta.tag[v2-0103]", "MSH-11", procId);
+  T("(fixed)", "MSH-12", version || "2.5.1");
+
+  /* ── segment builders ── */
+  function buildEVN() {
+    const s = seg("EVN");
+    let recorded = bundleTs || nowTs, occurred = "", reasonCc = null, agents = [];
+    if (provenance) {
+      const u = U(provenance);
+      recorded = fhir2ts(u("recorded")) || recorded;
+      occurred = fhir2ts(u("occurredDateTime"));
+      reasonCc = (u("reason") || [])[0] || null;
+      agents = (u("agent") || []).map((a) => a.who).filter(Boolean);
+      u("target"); u("activity");
+      T("Provenance.recorded", "EVN-2", recorded);
+    }
+    s.set(1, mtEvent || "").set(2, recorded).set(4, reasonCc ? ccToCe(reasonCc) : "").set(6, occurred);
+    const ops = agents.filter((w) => deref(w)).map((w) => refToXcn(w)).filter(Boolean);
+    if (ops.length) { s.set(5, joinRep(ops)); T("Provenance.agent", "EVN-5", ops.length + " operator(s)"); }
+    if (occurred) T("Provenance.occurredDateTime", "EVN-6", occurred);
+  }
+
+  function buildPID(p, setId) {
+    const s = seg("PID");
+    if (!p) return s;
+    const u = U(p);
+    s.set(1, String(setId || 1));
+    const ids = u("identifier") || [];
+    const ssn = ids.find((id) => id.system === "http://hl7.org/fhir/sid/us-ssn");
+    const acct = ids.find((id) => id.system === LOCAL_NS + "PID-18");
+    const dl = ids.find((id) => id.system === LOCAL_NS + "PID-20");
+    const listed = ids.filter((id) => id !== ssn && id !== acct && id !== dl);
+    if (listed.length) { s.set(3, joinRep(listed.map(idToCx))); T("Patient.identifier", "PID-3", listed.map((x) => x.value).join(", ")); }
+    else I("error", "PID-3", "PID-3 is required in v2.5.1 but the Patient has no usable identifier.");
+    const names = u("name") || [];
+    if (names.length) { s.set(5, joinRep(names.map(nameToXpn))); T("Patient.name", "PID-5", names.map((n) => n.text || [((n.given || [])[0]), n.family].filter(Boolean).join(" ")).join(", ")); }
+    else I("error", "PID-5", "PID-5 is required in v2.5.1 but the Patient has no name.");
+    const exts = u("extension") || [];
+    const extBy = (url) => exts.find((e) => e.url === url);
+    const maiden = extBy("http://hl7.org/fhir/StructureDefinition/patient-mothersMaidenName");
+    if (maiden) { s.set(6, cmp(maiden.valueString)); T("Patient.extension[mothersMaidenName]", "PID-6", maiden.valueString); }
+    const birthTime = extBy("http://hl7.org/fhir/StructureDefinition/patient-birthTime");
+    const bd = u("birthDate");
+    if (birthTime) { s.set(7, fhir2ts(birthTime.valueDateTime)); T("Patient.extension[birthTime]", "PID-7", s.f[7]); }
+    else if (bd) { s.set(7, fhir2ts(bd)); T("Patient.birthDate", "PID-7", s.f[7]); }
+    const g = u("gender");
+    if (g) { s.set(8, GENDER_REV[g] || "U"); T("Patient.gender", "PID-8", g + " → " + s.f[8]); }
+    const ombToCe = (e) => {
+      const inner = e.extension || [];
+      const t = (inner.find((x) => x.url === "text") || {}).valueString || "";
+      const c = (inner.find((x) => x.url === "ombCategory") || {}).valueCoding;
+      return c ? cmp(c.code, c.display || t, csName(c.system)) : cmp("", t);
+    };
+    const race = extBy("http://hl7.org/fhir/us/core/StructureDefinition/us-core-race");
+    if (race) { s.set(10, ombToCe(race)); T("Patient.extension[us-core-race]", "PID-10", s.f[10]); }
+    const eth = extBy("http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity");
+    if (eth) { s.set(22, ombToCe(eth)); T("Patient.extension[us-core-ethnicity]", "PID-22", s.f[22]); }
+    const relig = extBy("http://hl7.org/fhir/StructureDefinition/patient-religion");
+    if (relig) { s.set(17, ccToCe(relig.valueCodeableConcept)); T("Patient.extension[patient-religion]", "PID-17", s.f[17]); }
+    const bp = extBy("http://hl7.org/fhir/StructureDefinition/patient-birthPlace");
+    if (bp) { s.set(23, escapeHL7((bp.valueAddress || {}).text || "", enc)); T("Patient.extension[patient-birthPlace]", "PID-23", s.f[23]); }
+    const addrs = u("address") || [];
+    if (addrs.length) { s.set(11, joinRep(addrs.map(addrToXad))); T("Patient.address", "PID-11", addrs.length + " address(es)"); }
+    const tel = u("telecom") || [];
+    const home = tel.filter((t) => t.use !== "work"), work = tel.filter((t) => t.use === "work");
+    if (home.length) { s.set(13, joinRep(home.map(telToXtn))); T("Patient.telecom (home/mobile)", "PID-13", home.map((t) => t.value).join(", ")); }
+    if (work.length) { s.set(14, joinRep(work.map(telToXtn))); T("Patient.telecom (work)", "PID-14", work.map((t) => t.value).join(", ")); }
+    const comm = (u("communication") || [])[0];
+    if (comm) { s.set(15, ccToCe(comm.language)); T("Patient.communication[0].language", "PID-15", s.f[15]); }
+    const ms = u("maritalStatus");
+    if (ms) { s.set(16, ccToCe(ms)); T("Patient.maritalStatus", "PID-16", s.f[16]); }
+    if (acct) { s.set(18, escapeHL7(acct.value, enc)); T("Patient.identifier[PID-18]", "PID-18", acct.value); }
+    if (ssn) { s.set(19, escapeHL7(ssn.value, enc)); T("Patient.identifier[SS]", "PID-19", ssn.value); }
+    if (dl) { s.set(20, escapeHL7(dl.value, enc)); T("Patient.identifier[PID-20]", "PID-20", dl.value); }
+    if (u("multipleBirthBoolean") !== undefined) { s.set(24, p.multipleBirthBoolean ? "Y" : "N"); T("Patient.multipleBirthBoolean", "PID-24", s.f[24]); }
+    if (u("multipleBirthInteger") !== undefined) { s.set(24, "Y").set(25, String(p.multipleBirthInteger)); T("Patient.multipleBirthInteger", "PID-25", s.f[25]); }
+    if (u("deceasedDateTime")) { s.set(29, fhir2ts(p.deceasedDateTime)).set(30, "Y"); T("Patient.deceasedDateTime", "PID-29", s.f[29]); }
+    else if (u("deceasedBoolean") !== undefined) { s.set(30, p.deceasedBoolean ? "Y" : "N"); T("Patient.deceasedBoolean", "PID-30", s.f[30]); }
+    const meta = u("meta") || {};
+    if (meta.lastUpdated) { s.set(33, fhir2ts(meta.lastUpdated)); T("Patient.meta.lastUpdated", "PID-33", s.f[33]); }
+    u("active"); u("link");
+    return s;
+  }
+
+  function buildMRG(prior) {
+    if (!prior) return;
+    const u = U(prior);
+    const s = seg("MRG");
+    const ids = u("identifier") || [];
+    if (ids.length) { s.set(1, joinRep(ids.map(idToCx))); T("Patient.identifier (superseded)", "MRG-1", ids.map((x) => x.value).join(", ")); }
+    const nm = (u("name") || [])[0];
+    if (nm) { s.set(7, nameToXpn(nm)); T("Patient.name (superseded)", "MRG-7", nm.text || nm.family); }
+    u("active"); u("link");
+  }
+
+  function buildPV1(e) {
+    const s = seg("PV1");
+    s.set(1, "1");
+    if (!e) { s.set(2, "N"); I("info", "PV1-2", "No Encounter in the input; PV1 was emitted with patient class N (not applicable)."); return s; }
+    const u = U(e);
+    const cls = (u("class") || {}).code;
+    s.set(2, ENC_CLASS_REV[cls] || "U");
+    T("Encounter.class", "PV1-2", (cls || "?") + " → " + s.f[2], ENC_CLASS_REV[cls] ? "" : "no table 0004 equivalent; used U");
+    const locs = u("location") || [];
+    const active = locs.find((l) => l.status === "active") || locs[0];
+    const prior = locs.find((l) => l.status === "completed");
+    if (active) { s.set(3, refToPl(active.location)); T("Encounter.location[active]", "PV1-3", s.f[3]); }
+    if (prior && prior !== active) { s.set(6, refToPl(prior.location)); T("Encounter.location[completed]", "PV1-6", s.f[6]); }
+    const prio = u("priority");
+    if (prio) { s.set(4, ccToCe(prio)); T("Encounter.priority", "PV1-4", s.f[4]); }
+    const hosp = u("hospitalization") || {};
+    if (hosp.preAdmissionIdentifier) { s.set(5, escapeHL7(hosp.preAdmissionIdentifier.value || "", enc)); T("Encounter.hospitalization.preAdmissionIdentifier", "PV1-5", s.f[5]); }
+    if (hosp.admitSource) { s.set(14, ccToCe(hosp.admitSource)); T("Encounter.hospitalization.admitSource", "PV1-14", s.f[14]); }
+    if (hosp.dischargeDisposition) { s.set(36, ccToCe(hosp.dischargeDisposition)); T("Encounter.hospitalization.dischargeDisposition", "PV1-36", s.f[36]); }
+    const parts = u("participant") || [];
+    const byType = (code) => parts.filter((p) => ((p.type || []).some((t) => (t.coding || []).some((c) => c.code === code))));
+    const put = (code, field) => {
+      const list = byType(code).map((p) => refToXcn(p.individual)).filter(Boolean);
+      if (list.length) { s.set(field, joinRep(list)); T("Encounter.participant[" + code + "]", "PV1-" + field, list.length + " provider(s)"); }
+    };
+    put("ATND", 7); put("REF", 8); put("CON", 9); put("ADM", 17);
+    const svc = u("serviceType");
+    if (svc) { s.set(10, ccToCe(svc)); T("Encounter.serviceType", "PV1-10", s.f[10]); }
+    const typ = (u("type") || [])[0];
+    if (typ) { s.set(18, ccToCe(typ)); T("Encounter.type[0]", "PV1-18", s.f[18]); }
+    const ids = u("identifier") || [];
+    if (ids.length) { s.set(19, idToCx(ids[0])); T("Encounter.identifier[0]", "PV1-19", ids[0].value); }
+    const per = u("period") || {};
+    if (per.start) { s.set(44, fhir2ts(per.start)); T("Encounter.period.start", "PV1-44", s.f[44]); }
+    if (per.end) { s.set(45, fhir2ts(per.end)); T("Encounter.period.end", "PV1-45", s.f[45]); }
+    u("status"); u("subject");
+    return s;
+  }
+
+  function buildAL1(a, n) {
+    const u = U(a);
+    const s = seg("AL1");
+    s.set(1, String(n));
+    const cat = (u("category") || [])[0];
+    if (cat) { s.set(2, ALLERGY_CAT_REV[cat] || ""); T("AllergyIntolerance.category[0]", "AL1-2", cat + " → " + (s.f[2] || "(no code)")); }
+    s.set(3, ccToCe(u("code")));
+    T("AllergyIntolerance.code", "AL1-3", s.f[3]);
+    const crit = u("criticality");
+    const reaction = (u("reaction") || [])[0] || {};
+    const sev = reaction.severity === "severe" || crit === "high" ? "SV" : reaction.severity === "moderate" ? "MO" : reaction.severity === "mild" || crit === "low" ? "MI" : "";
+    if (sev) { s.set(4, sev); T("AllergyIntolerance.criticality/reaction.severity", "AL1-4", sev); }
+    const man = (reaction.manifestation || [])[0];
+    if (man) { s.set(5, escapeHL7(man.text || ((man.coding || [])[0] || {}).display || "", enc)); T("AllergyIntolerance.reaction[0].manifestation[0]", "AL1-5", s.f[5]); }
+    const rec = u("recordedDate");
+    if (rec) { s.set(6, fhir2ts(rec)); T("AllergyIntolerance.recordedDate", "AL1-6", s.f[6]); }
+    u("clinicalStatus"); u("patient");
+    return s;
+  }
+
+  function buildDG1(c, n) {
+    const u = U(c);
+    const s = seg("DG1");
+    s.set(1, String(n));
+    const code = u("code");
+    const c0 = ((code || {}).coding || [])[0] || {};
+    if (c0.system) s.set(2, csName(c0.system));
+    s.set(3, ccToCe(code));
+    T("Condition.code", "DG1-3", s.f[3]);
+    if ((code || {}).text) { s.set(4, escapeHL7(code.text, enc)); }
+    const onset = u("onsetDateTime");
+    if (onset) { s.set(5, fhir2ts(onset)); T("Condition.onsetDateTime", "DG1-5", s.f[5]); }
+    const catCodings = ((u("category") || [])[0] || {}).coding || [];
+    const dgType = (catCodings.find((c) => c.system === V2("0052")) || {}).code;
+    s.set(6, dgType || "F");
+    if (dgType) T("Condition.category[0].coding[v2-0052]", "DG1-6", dgType);
+    const exts = u("extension") || [];
+    const rank = exts.find((e) => e.url === "http://hl7.org/fhir/StructureDefinition/condition-diagnosisRank");
+    if (rank) { s.set(15, String(rank.valuePositiveInt)); T("Condition.extension[diagnosisRank]", "DG1-15", s.f[15]); }
+    const asserter = u("asserter");
+    if (asserter) { s.set(16, refToXcn(asserter)); T("Condition.asserter", "DG1-16", s.f[16]); }
+    const recorded = u("recordedDate");
+    if (recorded) { s.set(19, fhir2ts(recorded)); T("Condition.recordedDate", "DG1-19", s.f[19]); }
+    u("subject"); u("encounter");
+    return s;
+  }
+
+  function buildIN1(cov, n) {
+    const u = U(cov);
+    const s = seg("IN1");
+    s.set(1, String(n));
+    const typ = u("type");
+    if (typ) { s.set(2, ccToCe(typ)); T("Coverage.type", "IN1-2", s.f[2]); }
+    const payor = (u("payor") || [])[0];
+    const org = deref(payor);
+    if (org) {
+      const ou = U(org);
+      const oid = ((ou("identifier") || [])[0] || {}).value;
+      s.set(3, cmp(oid)).set(4, escapeHL7(ou("name") || "", enc));
+      T("Coverage.payor[0] → Organization", "IN1-3/4", (ou("name") || oid || ""));
+    } else if (payor && payor.display) { s.set(4, escapeHL7(payor.display, enc)); }
+    else I("warn", "IN1-3", "IN1-3 (Insurance Company ID) is required in v2.5.1 but Coverage.payor could not be resolved.");
+    const cls = (u("class") || [])[0];
+    if (cls) { s.set(8, escapeHL7(cls.value || "", enc)).set(9, escapeHL7(cls.name || "", enc)); T("Coverage.class[0]", "IN1-8/9", cls.value || cls.name); }
+    const per = u("period") || {};
+    if (per.start) { s.set(12, fhir2ts(per.start)); T("Coverage.period.start", "IN1-12", s.f[12]); }
+    if (per.end) { s.set(13, fhir2ts(per.end)); T("Coverage.period.end", "IN1-13", s.f[13]); }
+    const rel = u("relationship");
+    if (rel) { s.set(17, ccToCe(rel)); T("Coverage.relationship", "IN1-17", s.f[17]); }
+    const ids = u("identifier") || [];
+    if (ids.length) { s.set(36, escapeHL7(ids[0].value, enc)); T("Coverage.identifier[0]", "IN1-36", ids[0].value); }
+    u("status"); u("beneficiary"); u("subscriber");
+    return s;
+  }
+
+  function buildORC(sr, controlCode, minimal) {
+    const u = U(sr);
+    const s = seg("ORC");
+    const status = u("status");
+    s.set(1, controlCode || ORDER_STATUS_REV[status] || "NW");
+    T("ServiceRequest.status", "ORC-1", (status || "?") + " → " + s.f[1]);
+    const ids = u("identifier") || [];
+    const placer = idType(ids, "PLAC"), filler = idType(ids, "FILL");
+    if (placer) { s.set(2, idToEi(placer)); T("ServiceRequest.identifier[PLAC]", "ORC-2", placer.value); }
+    if (filler) { s.set(3, idToEi(filler)); T("ServiceRequest.identifier[FILL]", "ORC-3", filler.value); }
+    if (minimal) { u("authoredOn"); u("requester"); u("occurrenceDateTime"); u("reasonCode"); u("intent"); u("subject"); u("encounter"); return s; }
+    const req = u("requisition");
+    if (req) { s.set(4, escapeHL7(req.value || "", enc)); T("ServiceRequest.requisition", "ORC-4", req.value); }
+    const authored = u("authoredOn");
+    if (authored) { s.set(9, fhir2ts(authored)); T("ServiceRequest.authoredOn", "ORC-9", s.f[9]); }
+    const requester = u("requester");
+    if (requester) { s.set(12, refToXcn(requester)); T("ServiceRequest.requester", "ORC-12", s.f[12]); }
+    u("occurrenceDateTime");                       /* carried in OBR-36, not duplicated here */
+    const orc5 = (u("extension") || []).find((e) => e.url === LOCAL_CS + "ORC-5-order-status");
+    if (orc5) { s.set(5, orc5.valueCode); T("ServiceRequest.extension[ORC-5]", "ORC-5", orc5.valueCode); }
+    const reason = (u("reasonCode") || [])[0];
+    if (reason) { s.set(16, ccToCe(reason)); T("ServiceRequest.reasonCode[0]", "ORC-16", s.f[16]); }
+    u("intent"); u("subject"); u("encounter");
+    return s;
+  }
+
+  function buildOBR(sr, dr, setId, opts) {
+    opts = opts || {};
+    const s = seg("OBR");
+    s.set(1, String(setId));
+    const su = U(sr), du = U(dr);
+    const ids = (sr ? su("identifier") : du("identifier")) || [];
+    const placer = idType(ids, "PLAC"), filler = idType(ids, "FILL");
+    if (placer) { s.set(2, idToEi(placer)); T((sr ? "ServiceRequest" : "DiagnosticReport") + ".identifier[PLAC]", "OBR-2", placer.value); }
+    if (filler) { s.set(3, idToEi(filler)); T((sr ? "ServiceRequest" : "DiagnosticReport") + ".identifier[FILL]", "OBR-3", filler.value); }
+    const code = (dr && du("code")) || (sr && su("code"));
+    s.set(4, ccToCe(code));
+    T((dr ? "DiagnosticReport" : "ServiceRequest") + ".code", "OBR-4", s.f[4]);
+    if (sr) {
+      const exts = su("extension") || [];
+      const spec = exts.find((e) => e.url === LOCAL_CS + "OBR-11-specimen-action");
+      if (spec) { s.set(11, spec.valueCode); T("ServiceRequest.extension[OBR-11]", "OBR-11", spec.valueCode); }
+      const notes = su("note") || [];
+      const clinical = notes.filter((nn) => nn.text && nn.text.indexOf("Danger code: ") !== 0);
+      const danger = notes.find((nn) => nn.text && nn.text.indexOf("Danger code: ") === 0);
+      if (danger) { s.set(12, cmp("", danger.text.slice("Danger code: ".length))); T("ServiceRequest.note", "OBR-12", s.f[12]); }
+      if (clinical.length) { s.set(13, escapeHL7(clinical[0].text, enc)); T("ServiceRequest.note[0]", "OBR-13", s.f[13]); }
+      const occ = su("occurrenceDateTime");
+      if (occ) { s.set(36, fhir2ts(occ)); T("ServiceRequest.occurrenceDateTime", "OBR-36", s.f[36]); }
+      const requester = su("requester");
+      if (requester) { s.set(16, refToXcn(requester)); T("ServiceRequest.requester", "OBR-16", s.f[16]); }
+      const cat = su("category") || [];
+      if (cat.length && !dr) { s.set(24, (((cat[0].coding || [])[0] || {}).code) || ""); T("ServiceRequest.category[0]", "OBR-24", s.f[24]); }
+      const reasons = (su("reasonCode") || []).slice(opts.skipFirstReason ? 1 : 0);
+      if (reasons.length) { s.set(31, joinRep(reasons.map(ccToCe))); T("ServiceRequest.reasonCode", "OBR-31", s.f[31]); }
+      if (dr) su("code");
+    }
+    if (dr) {
+      const eff = du("effectiveDateTime"), effP = du("effectivePeriod") || {};
+      if (eff) { s.set(7, fhir2ts(eff)); T("DiagnosticReport.effectiveDateTime", "OBR-7", s.f[7]); }
+      else if (effP.start) { s.set(7, fhir2ts(effP.start)).set(8, fhir2ts(effP.end)); T("DiagnosticReport.effectivePeriod", "OBR-7/8", s.f[7] + "→" + (s.f[8] || "")); }
+      const issued = du("issued");
+      if (issued) { s.set(22, fhir2ts(issued)); T("DiagnosticReport.issued", "OBR-22", s.f[22]); }
+      const cat = (du("category") || [])[0];
+      if (cat) { s.set(24, (((cat.coding || [])[0] || {}).code) || ""); T("DiagnosticReport.category[0]", "OBR-24", s.f[24]); }
+      const st = du("status");
+      s.set(25, RPT_STATUS_REV[st] || "F");
+      T("DiagnosticReport.status", "OBR-25", (st || "?") + " → " + s.f[25]);
+      const interp = du("resultsInterpreter") || [];
+      if (interp.length) { s.set(32, joinRep(interp.map(refToXcn))); T("DiagnosticReport.resultsInterpreter", "OBR-32", interp.length + " provider(s)"); }
+      const perf = du("performer") || [];
+      if (perf.length) { s.set(34, joinRep(perf.map(refToXcn))); T("DiagnosticReport.performer", "OBR-34", perf.length + " performer(s)"); }
+      du("subject"); du("encounter"); du("basedOn"); du("result");
+      const dicom = (du("identifier") || []).find((x) => x.system === "urn:dicom:uid");
+      if (dicom) pendingZds = { value: dicom.value, from: "DiagnosticReport" };
+    } else if (sr) {
+      const dicom = (su("identifier") || []).find((x) => x.system === "urn:dicom:uid");
+      if (dicom) pendingZds = { value: dicom.value, from: "ServiceRequest" };
+    }
+    return s;
+  }
+  let pendingZds = null;
+  function emitZds() {
+    if (!pendingZds) return;
+    const z = seg("ZDS");
+    z.set(1, cmp(String(pendingZds.value).replace(/^urn:oid:/, ""), "", "Application", "DICOM"));
+    T(pendingZds.from + ".identifier[urn:dicom:uid]", "ZDS-1", z.f[1]);
+    pendingZds = null;
+  }
+
+  function buildOBX(o, setId) {
+    const u = U(o);
+    const s = seg("OBX");
+    s.set(1, String(setId));
+    const subId = ((u("identifier") || []).find((x) => x.system === LOCAL_NS + "OBX-4") || {}).value;
+    s.set(3, ccToCe(u("code")));
+    T("Observation.code", "OBX-3", s.f[3]);
+    if (subId) { s.set(4, escapeHL7(subId, enc)); T("Observation.identifier[OBX-4]", "OBX-4", subId); }
+    let vt = "", value = "", units = "";
+    const q = u("valueQuantity"), cc = u("valueCodeableConcept"), sv = u("valueString"),
+      dtv = u("valueDateTime"), bv = u("valueBoolean"), rng = u("valueRange"), tv = u("valueTime");
+    const unitOf = (qq) => {
+      if (!qq || !(qq.unit || qq.code)) return "";
+      const code = qq.code || qq.unit;
+      const display = qq.unit && qq.unit !== code ? qq.unit : "";
+      return cmp(code, display, qq.system === "http://unitsofmeasure.org" ? "UCUM" : csName(qq.system));
+    };
+    if (q) {
+      if (q.comparator) { vt = "SN"; value = cmp(q.comparator, q.value); }
+      else { vt = "NM"; value = escapeHL7(q.value, enc); }
+      units = unitOf(q);
+      T("Observation.valueQuantity", "OBX-5", (q.comparator || "") + q.value + (q.unit ? " " + q.unit : ""));
+    } else if (rng) {
+      vt = "SN"; value = cmp("", (rng.low || {}).value, "-", (rng.high || {}).value);
+      units = unitOf(rng.low || rng.high);
+      T("Observation.valueRange", "OBX-5", value);
+    } else if (cc) { vt = "CE"; value = ccToCe(cc); T("Observation.valueCodeableConcept", "OBX-5", value); }
+    else if (dtv) { vt = "TS"; value = fhir2ts(dtv); T("Observation.valueDateTime", "OBX-5", value); }
+    else if (tv) { vt = "TM"; value = String(tv).replace(/:/g, ""); T("Observation.valueTime", "OBX-5", value); }
+    else if (bv !== undefined) { vt = "ST"; value = bv ? "Y" : "N"; T("Observation.valueBoolean", "OBX-5", value); }
+    else if (sv !== undefined) {
+      const marker = (u("extension") || []).find((e) => e.url === LOCAL_CS + "OBX-2-value-type");
+      vt = marker ? marker.valueCode : (String(sv).indexOf("\n") >= 0 || String(sv).length > 200 ? "TX" : "ST");
+      value = escapeHL7(sv, enc);
+      T("Observation.valueString", "OBX-5", String(sv).slice(0, 60));
+    } else {
+      vt = "ST";
+      I("info", "OBX-5", "Observation " + (o.id || "") + " has no value[x] this converter recognises; OBX-5 was left empty.");
+    }
+    s.set(2, vt).set(5, value).set(6, units);
+    const rr = (u("referenceRange") || [])[0];
+    if (rr) {
+      const lo = (rr.low || {}).value, hi = (rr.high || {}).value;
+      s.set(7, escapeHL7(rr.text ? rr.text : (lo !== undefined && hi !== undefined ? lo + "-" + hi : (hi !== undefined ? "<=" + hi : (lo !== undefined ? ">=" + lo : ""))), enc));
+      T("Observation.referenceRange[0]", "OBX-7", s.f[7]);
+    }
+    const interp = (u("interpretation") || [])[0];
+    if (interp) { s.set(8, joinRep((interp.coding || []).map((c) => escapeHL7(c.code, enc)))); T("Observation.interpretation[0]", "OBX-8", s.f[8]); }
+    s.set(11, OBS_STATUS_REV[u("status")] || "F");
+    T("Observation.status", "OBX-11", (o.status || "?") + " → " + s.f[11]);
+    const eff = u("effectiveDateTime");
+    if (eff) { s.set(14, fhir2ts(eff)); T("Observation.effectiveDateTime", "OBX-14", s.f[14]); }
+    const perf = u("performer") || [];
+    const practs = perf.map((p) => refToXcn(p)).filter(Boolean);
+    if (practs.length) { s.set(16, joinRep(practs)); T("Observation.performer", "OBX-16", practs.length + " performer(s)"); }
+    const method = u("method");
+    if (method) { s.set(17, ccToCe(method)); T("Observation.method", "OBX-17", s.f[17]); }
+    u("subject"); u("encounter"); u("basedOn");
+    return s;
+  }
+
+  function buildNTE(notes, srcPath) {
+    (notes || []).forEach((n, i) => {
+      const txt = typeof n === "string" ? n : n.text;
+      if (!txt) return;
+      const s = seg("NTE");
+      s.set(1, String(i + 1)).set(3, escapeHL7(txt, enc));
+      T(srcPath, "NTE-3", txt.length > 60 ? txt.slice(0, 60) + "…" : txt);
+    });
+  }
+
+  function buildSCH(ap) {
+    const u = U(ap);
+    const s = seg("SCH");
+    const ids = u("identifier") || [];
+    const placer = idType(ids, "PLAC") || ids[0], filler = idType(ids, "FILL");
+    if (placer) { s.set(1, idToEi(placer)); T("Appointment.identifier[PLAC]", "SCH-1", placer.value); }
+    if (filler) { s.set(2, idToEi(filler)); T("Appointment.identifier[FILL]", "SCH-2", filler.value); }
+    const comment = u("comment");
+    if (comment) { s.set(6, cmp("", comment)); T("Appointment.comment", "SCH-6", comment); }
+    const reason = (u("reasonCode") || [])[0];
+    if (reason) { s.set(7, ccToCe(reason)); T("Appointment.reasonCode[0]", "SCH-7", s.f[7]); }
+    const apType = u("appointmentType");
+    if (apType) { s.set(8, ccToCe(apType)); T("Appointment.appointmentType", "SCH-8", s.f[8]); }
+    const mins = u("minutesDuration");
+    if (mins) { s.set(9, String(mins)).set(10, "MIN"); T("Appointment.minutesDuration", "SCH-9/10", mins + " MIN"); }
+    const start = u("start"), end = u("end");
+    if (start || end) { s.set(11, cmp("", "", mins ? String(mins) : "", fhir2ts(start), fhir2ts(end))); T("Appointment.start/end", "SCH-11", fhir2ts(start) + "→" + fhir2ts(end)); }
+    const st = u("status");
+    if (st) { s.set(25, APPT_STATUS_REV[st] || "Booked"); T("Appointment.status", "SCH-25", st + " → " + s.f[25]); }
+    u("participant");
+    return s;
+  }
+
+  const MSA3_MARK = LOCAL_CS + "MSA-3";
+  const isMsa3 = (oo) => (oo.issue || []).some((iss) => (((iss.details || {}).coding) || []).some((c) => c.system === MSA3_MARK));
+  function buildMSA() {
+    const resp = mhRes ? U(mhRes)("response") : null;
+    const s = seg("MSA");
+    const codeMap = { ok: "AA", "transient-error": "AE", "fatal-error": "AR" };
+    s.set(1, resp ? (codeMap[resp.code] || "AA") : "AA");
+    s.set(2, resp && resp.identifier ? escapeHL7(resp.identifier, enc) : ctrlId);
+    const textOutcome = outcomes.find(isMsa3);
+    if (textOutcome) {
+      const iss = (U(textOutcome)("issue") || [])[0] || {};
+      s.set(3, escapeHL7(iss.diagnostics || "", enc));
+      T("OperationOutcome.issue[0].diagnostics", "MSA-3", iss.diagnostics, "MSA-3 is deprecated in v2.5.1");
+    }
+    T("MessageHeader.response.code", "MSA-1", (resp ? resp.code : "(none)") + " → " + s.f[1]);
+    T("MessageHeader.response.identifier", "MSA-2", s.f[2]);
+    return s;
+  }
+  function buildERR(oo) {
+    const u = U(oo);
+    if (isMsa3(oo)) { u("issue"); return; }
+    (u("issue") || []).forEach((iss) => {
+      const s = seg("ERR");
+      const sevMap = { fatal: "F", error: "E", warning: "W", information: "I" };
+      if (iss.expression && iss.expression.length) s.set(2, cmp.apply(null, String(iss.expression[0]).split("^")));
+      s.set(3, iss.details ? ccToCe(iss.details) : cmp("207", "Application internal error", "HL70357"));
+      s.set(4, sevMap[iss.severity] || "E");
+      if (iss.diagnostics) s.set(7, escapeHL7(iss.diagnostics, enc));
+      const um = (iss.extension || []).find((e) => e.url === LOCAL_CS + "ERR-8-user-message");
+      if (um) s.set(8, escapeHL7(um.valueString, enc));
+      T("OperationOutcome.issue", "ERR-3/4", (iss.severity || "") + " " + (iss.diagnostics || "").slice(0, 50));
+    });
+  }
+
+  /* ── assemble, in the order the structure defines ── */
+  const emittedObs = new Set();
+  const reportObs = (dr) => (U(dr)("result") || []).map(deref).filter(Boolean);
+
+  if (mtCode === "ACK") {
+    buildMSA();
+    outcomes.forEach(buildERR);
+  } else if (mtCode === "SIU") {
+    if (appointments.length) buildSCH(appointments[0]);
+    else I("warn", "SCH", "SIU messages need an SCH segment but the input has no Appointment.");
+    if (appointments.length > 1) I("info", "SCH", "Only the first Appointment was converted; a v2 SIU message carries one schedule.");
+    buildPID(patient);
+    if (encounter) buildPV1(encounter);
+  } else if (mtCode === "ORU") {
+    buildPID(patient);
+    if (encounter) buildPV1(encounter);
+    if (!reports.length) {
+      const sr = orders[0] || null;
+      if (sr) buildORC(sr, "RE", true);
+      buildOBR(sr, null, 1);
+      emitZds();
+      I("info", "OBR", "No DiagnosticReport in the input, so OBR was built from the order and the observations were attached to it.");
+      observations.forEach((o, i) => { buildOBX(o, i + 1); buildNTE(U(o)("note"), "Observation.note"); emittedObs.add(o); });
+    } else {
+      reports.forEach((dr, ri) => {
+        const sr = deref((U(dr)("basedOn") || [])[0]);
+        if (sr) buildORC(sr, "RE", true);
+        buildOBR(sr, dr, ri + 1);
+        emitZds();
+        const concl = U(dr)("conclusion");
+        if (concl) buildNTE([{ text: concl }], "DiagnosticReport.conclusion");
+        reportObs(dr).forEach((o, oi) => {
+          buildOBX(o, oi + 1);
+          buildNTE(U(o)("note"), "Observation.note");
+          emittedObs.add(o);
+        });
+      });
+      const orphans = observations.filter((o) => !emittedObs.has(o));
+      if (orphans.length) {
+        I("info", "OBX", orphans.length + " Observation(s) are not referenced by any DiagnosticReport.result; they were appended to the last OBR.");
+        orphans.forEach((o, i) => { buildOBX(o, i + 1); buildNTE(U(o)("note"), "Observation.note"); emittedObs.add(o); });
+      }
+    }
+  } else if (mtCode === "ORM" || mtCode === "ORR") {
+    if (mtCode === "ORR") { buildMSA(); outcomes.forEach(buildERR); }
+    buildPID(patient);
+    if (encounter) buildPV1(encounter);
+    if (!orders.length) I("warn", "ORC", "An order message needs at least one ServiceRequest; none was found.");
+    orders.forEach((sr, i) => {
+      buildORC(sr);
+      buildOBR(sr, null, i + 1, { skipFirstReason: !!(U(sr)("reasonCode") || []).length });
+      const notes = (U(sr)("note") || []).filter((nn) => nn.text && nn.text.indexOf("Danger code: ") !== 0);
+      if (notes.length > 1) buildNTE(notes.slice(1), "ServiceRequest.note");
+      emitZds();
+    });
+    observations.forEach((o, i) => { buildOBX(o, i + 1); emittedObs.add(o); });
+  } else {
+    buildEVN();
+    buildPID(patient);
+    if (priorPatient) buildMRG(priorPatient);
+    const pv1Required = (HL7_STRUCTURES[structKey] || { s: [] }).s.indexOf("PV1*") >= 0;
+    if (encounter || pv1Required) buildPV1(encounter);
+    observations.forEach((o, i) => { buildOBX(o, i + 1); buildNTE(U(o)("note"), "Observation.note"); emittedObs.add(o); });
+    allergies.forEach((a, i) => { buildAL1(a, i + 1); buildNTE(U(a)("note"), "AllergyIntolerance.note"); });
+    conditions.forEach((c, i) => { buildDG1(c, i + 1); buildNTE(U(c)("note"), "Condition.note"); });
+    coverages.forEach((c, i) => buildIN1(c, i + 1));
+  }
+  if (patients.length > 2 || (patients.length === 2 && !priorPatient)) {
+    I("warn", "Patient", "The input holds " + patients.length + " Patient resources. A v2 message describes one patient (plus an MRG for a merge), so only one was converted.");
+  }
+
+  const out = render("\n");
+
+  /* ── structure check against the v2.5.1 definition ── */
+  if (HL7_STRUCTURES[structKey]) {
+    const expect = HL7_STRUCTURES[structKey].s.map((x) => ({ seg: x.replace(/[*+]/g, ""), required: x.indexOf("*") >= 0 }));
+    const present = new Set(segments.map((s) => s.name));
+    const MAPPED_SEGS = { MSH: 1, MSA: 1, ERR: 1, EVN: 1, PID: 1, PV1: 1, MRG: 1, AL1: 1, DG1: 1, IN1: 1, ORC: 1, OBR: 1, OBX: 1, NTE: 1, SCH: 1, ZDS: 1 };
+    expect.filter((e) => e.required && !present.has(e.seg)).forEach((e) => {
+      if (MAPPED_SEGS[e.seg]) I("error", structKey, "Required segment " + e.seg + " could not be built — the input has no resource that maps to it.");
+      else I("warn", structKey, "Required segment " + e.seg + " is missing: this converter does not map any FHIR resource to " + e.seg + ", so a strict receiver may reject the message.");
+    });
+  }
+
+  /* ── what did not make it across ── */
+  const SKIP_KEYS = { resourceType: 1, id: 1, meta: 1, text: 1, implicitRules: 1, language: 1, contained: 1, extension: 1, modifierExtension: 1 };
+  const lossy = [];
+  resources.forEach((res) => {
+    const used = usedMap.get(res) || new Set();
+    const isConverted = usedMap.has(res);
+    Object.keys(res).forEach((k) => {
+      if (SKIP_KEYS[k] || used.has(k)) return;
+      let preview = JSON.stringify(res[k]);
+      if (preview && preview.length > 120) preview = preview.slice(0, 120) + "…";
+      lossy.push({
+        field: res.resourceType + "." + k,
+        label: isConverted ? "element not used by this mapping" : "resource type not mapped to any segment",
+        value: preview,
+      });
+    });
+  });
+
+  /* ── anatomy of what we produced ── */
+  const anatomy = segments.map((s, i) => {
+    let populated = 0;
+    for (let n = 1; n < s.f.length; n++) if (s.f[n]) populated++;
+    return { line: i + 1, seg: s.name, name: (HL7_SPEC[s.name] && HL7_SPEC[s.name].name) || "—", populated, mapped: populated, known: true };
+  });
+
+  return { hl7: out, hl7cr: render("\r"), trace, issues, lossy, anatomy, structKey, kind: "hl7" };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. Round-trip comparison
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function diffHl7(a, b) {
+  const rows = [];
+  const pa = parseHL7(a).segs, pb = parseHL7(b).segs;
+  const max = Math.max(pa.length, pb.length);
+  for (let i = 0; i < max; i++) {
+    const sa = pa[i], sb = pb[i];
+    if (!sa) { rows.push({ path: "line " + (i + 1), a: "—", b: sb.line, kind: "added" }); continue; }
+    if (!sb) { rows.push({ path: "line " + (i + 1), a: sa.line, b: "—", kind: "lost" }); continue; }
+    if (sa.name !== sb.name) { rows.push({ path: "line " + (i + 1), a: sa.name, b: sb.name, kind: "moved" }); continue; }
+    const n = Math.max(sa.f.length, sb.f.length);
+    for (let k = 1; k < n; k++) {
+      if (sa.name === "MSH" && (k === 1 || k === 2)) continue;
+      const va = sa.f[k] || "", vb = sb.f[k] || "";
+      if (va === vb) continue;
+      rows.push({ path: sa.name + "-" + k, a: va || "(empty)", b: vb || "(empty)", kind: va && vb ? "changed" : (va ? "lost" : "added") });
+    }
+  }
+  return rows;
+}
+
+function flatten(obj, prefix, out) {
+  out = out || {};
+  prefix = prefix || "";
+  if (obj === null || typeof obj !== "object") { out[prefix] = String(obj); return out; }
+  if (Array.isArray(obj)) { obj.forEach((v, i) => flatten(v, prefix + "[" + i + "]", out)); return out; }
+  Object.keys(obj).forEach((k) => flatten(obj[k], prefix ? prefix + "." + k : k, out));
+  return out;
+}
+function diffJson(a, b) {
+  const fa = flatten(a), fb = flatten(b);
+  const keys = Object.keys(fa).concat(Object.keys(fb).filter((k) => !(k in fa)));
+  const rows = [];
+  keys.forEach((k) => {
+    if (/\bid$|fullUrl$|reference$/.test(k)) return;      /* generated ids carry no clinical meaning */
+    const va = fa[k], vb = fb[k];
+    if (va === vb) return;
+    rows.push({ path: k, a: va === undefined ? "—" : va, b: vb === undefined ? "—" : vb, kind: va === undefined ? "added" : vb === undefined ? "lost" : "changed" });
+  });
+  return rows;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. Samples
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const SAMPLES = {
+  "ADT^A08 \u2014 update patient information": [
+    "MSH|^~\\&|EPIC|MERCY_GEN|PACS|MERCY_RAD|20260318141522-0400||ADT^A08^ADT_A01|MSG00001|P|2.5.1",
+    "EVN|A08|20260318141522-0400||01^Patient request^HL70062|OPUSER^Nakamura^Aya^^^Ms|20260318141500-0400",
+    "PID|1||MRN448120^^^MERCY^MR~348-22-7781^^^SSA^SS||Okafor^Adaeze^Chidinma^^Ms^^L||19780412|F||2106-3^White^HL70005|118 Wren Court^Apt 4B^Portland^OR^97218^USA^H||^PRN^PH^^^503^5550142~^NET^Internet^adaeze.okafor@example.org|^WPN^PH^^^503^5550199|eng^English^ISO639|M^Married^HL70002||ACCT-77120||||2186-5^Not Hispanic or Latino^HL70189",
+    "PV1|1|O|RAD^CT2^^MERCY_GEN||||1447^Bhatt^Nikhil^R^^Dr^MD|2210^Feldman^Ruth^^^Dr||RADIOLOGY||||7^Emergency room^HL70023|||||V20260318-0091|||||||||||||||||||||||||20260318140000-0400",
+    "AL1|1|DA|7980^Penicillin G^RXNORM|SV|Anaphylaxis|20190302",
+    "DG1|1|I10C|R51.9^Headache, unspecified^I10C|Headache, unspecified|20260318|A|||||||||1",
+    "IN1|1|PPO01^Preferred PPO^HL70072|BCBS-OR|Blue Shield of Oregon||||GRP88214|Mercy Employees|||20250101|20261231||||SEL^Self^HL70063|||||||||||||||||||POL-4471902",
+  ].join("\n"),
+  "ORM^O01 \u2014 radiology order": [
+    "MSH|^~\\&|EPIC|MERCY_GEN|RIS|MERCY_RAD|20260318143000-0400||ORM^O01^ORM_O01|MSG00002|P|2.5.1",
+    "PID|1||MRN448120^^^MERCY^MR||Okafor^Adaeze^Chidinma||19780412|F|||118 Wren Court^^Portland^OR^97218^USA^H",
+    "PV1|1|O|RAD^CT2^^MERCY_GEN||||1447^Bhatt^Nikhil^R^^Dr^MD||||||||||||V20260318-0091",
+    "ORC|NW|PLC-778210|FLR-556140|GRP-99120|SC||||20260318143000-0400|||1447^Bhatt^Nikhil^R^^Dr^MD||||01^Physician order^HL70062",
+    "OBR|1|PLC-778210|FLR-556140|CT-HEAD-WO^CT HEAD WITHOUT CONTRAST^LOCAL|||||||O||Sudden onset headache, rule out bleed|||1447^Bhatt^Nikhil^R^^Dr^MD||||||||CT|||||||R51.9^Headache^I10C|||||20260318150000-0400",
+    "NTE|1|O|Patient is claustrophobic; allow extra time in the scanner.",
+    "ZDS|1.2.840.113619.2.55.3.604688.98765.1774457400.1^^Application^DICOM",
+  ].join("\n"),
+  "ORU^R01 \u2014 result with observations": [
+    "MSH|^~\\&|RIS|MERCY_RAD|EPIC|MERCY_GEN|20260318171245-0400||ORU^R01^ORU_R01|MSG00003|P|2.5.1",
+    "PID|1||MRN448120^^^MERCY^MR||Okafor^Adaeze^Chidinma||19780412|F",
+    "PV1|1|O|RAD^CT2^^MERCY_GEN||||1447^Bhatt^Nikhil^R^^Dr^MD||||||||||||V20260318-0091",
+    "ORC|RE|PLC-778210|FLR-556140",
+    "OBR|1|PLC-778210|FLR-556140|CT-HEAD-WO^CT HEAD WITHOUT CONTRAST^LOCAL|||20260318150200-0400|20260318151000-0400||||||||1447^Bhatt^Nikhil^R^^Dr^MD||||||20260318171000-0400||CT|F||||||R51.9^Headache^I10C|3390^Vasquez^Elena^^^Dr^MD||9902^Lindqvist^Tomas",
+    "OBX|1|TX|IMP^Impression^LOCAL||No acute intracranial haemorrhage, mass effect or midline shift.||||||F|||20260318171000-0400",
+    "OBX|2|NM|8867-4^Heart rate^LN||78|/min^per minute^UCUM|60-100|N|||F|||20260318150200-0400",
+    "OBX|3|CE|RADLEX-LAT^Laterality^LOCAL||G-A101^Left^SCT||||||F",
+    "NTE|1|L|Compared with prior CT of 12 March 2026; no interval change.",
+  ].join("\n"),
+  "ADT^A40 \u2014 patient merge": [
+    "MSH|^~\\&|EPIC|MERCY_GEN|PACS|MERCY_RAD|20260318181000-0400||ADT^A40^ADT_A39|MSG00004|P|2.5.1",
+    "EVN|A40|20260318181000-0400",
+    "PID|1||MRN448120^^^MERCY^MR||Okafor^Adaeze^Chidinma||19780412|F",
+    "MRG|MRN990771^^^MERCY^MR||||||Okafor^Adaeze^C",
+  ].join("\n"),
+  "SIU^S12 \u2014 new appointment": [
+    "MSH|^~\\&|SCHED|MERCY_GEN|RIS|MERCY_RAD|20260319090000-0400||SIU^S12^SIU_S12|MSG00005|P|2.5.1",
+    "SCH|APT-33012|FIL-77120||||^Routine booking|MRI-KNEE^MRI right knee^LOCAL|MRI^Magnetic resonance^LOCAL|45|MIN|^^45^20260402103000-0400^20260402111500-0400||||||||||||||Booked",
+    "PID|1||MRN448120^^^MERCY^MR||Okafor^Adaeze^Chidinma||19780412|F",
+    "PV1|1|O|RAD^MR1^^MERCY_GEN||||1447^Bhatt^Nikhil^R^^Dr^MD",
+    "RGS|1|A",
+    "AIS|1||MRI-KNEE^MRI right knee^LOCAL|20260402103000-0400",
+  ].join("\n"),
+  "ACK \u2014 application error": [
+    "MSH|^~\\&|PACS|MERCY_RAD|EPIC|MERCY_GEN|20260318141530-0400||ACK|MSG00006|P|2.5.1",
+    "MSA|AE|MSG00001|Patient class O is not accepted by this interface",
+    "ERR||PV1^1^2|103^Table value not found^HL70357|E|||Patient class O is not configured for this destination|Contact the interface team",
+  ].join("\n"),
+};
+
+const MAPPING_TABLE = [
+  ["MSH", "MessageHeader + Bundle.identifier/timestamp", "MSH-9 drives the event coding and, in reverse, the message type"],
+  ["EVN", "Provenance", "recorded / occurred / operator; a v2-only segment with no direct resource"],
+  ["PID", "Patient", "identifiers, names, birth, sex, address, telecom, death, race and ethnicity"],
+  ["MRG", "Patient.link (replaces / replaced-by)", "the merged-away record becomes a second, inactive Patient"],
+  ["PV1", "Encounter (+ Location, Practitioner)", "class, visit number, period, participants, locations, disposition"],
+  ["AL1", "AllergyIntolerance", "AL1-2 → category, AL1-4 → criticality and reaction severity"],
+  ["DG1", "Condition", "category is always encounter-diagnosis; DG1-15 becomes the diagnosis rank extension"],
+  ["IN1", "Coverage (+ Organization payor)", "plan, group, period, policy number, relationship"],
+  ["ORC", "ServiceRequest", "ORC-1 order control and ORC-5 order status both feed status"],
+  ["OBR", "ServiceRequest and/or DiagnosticReport", "in ORU it becomes the report; elsewhere it enriches the order"],
+  ["OBX", "Observation", "OBX-2 selects the value[x] type; OBX-11 gives the status"],
+  ["NTE", "note / conclusion / comment on whatever preceded it", "notes with no preceding mappable segment are reported, not dropped quietly"],
+  ["SCH", "Appointment", "SCH-11 timing quantity supplies start, end and duration"],
+  ["MSA", "MessageHeader.response", "AA/CA → ok, AE/CE → transient-error, AR/CR → fatal-error"],
+  ["ERR", "OperationOutcome", "one issue per ERR; severity from ERR-4"],
+  ["ZDS", "identifier with system urn:dicom:uid", "the Study Instance UID, attached to the report or the order"],
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. UI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const ui = {
+  input: $("input"), output: $("output"), stat: $("stat"),
+  inTitle: $("in-title"), outTitle: $("out-title"), sample: $("sample"),
+};
+let lastResult = null;
+
+const dirV2F = () => $("dir-v2f").checked;
+
+function highlightJson(json) {
+  return esc(json)
+    .replace(/(&quot;(?:[^&]|&(?!quot;))*?&quot;)(\s*:)/g, '<span class="t-key">$1</span>$2')
+    .replace(/:\s(&quot;(?:[^&]|&(?!quot;))*?&quot;)/g, ': <span class="t-str">$1</span>')
+    .replace(/:\s(-?\d+\.?\d*)/g, ': <span class="t-num">$1</span>')
+    .replace(/\b(true|false|null)\b/g, '<span class="t-lit">$1</span>');
+}
+function highlightHl7(msg) {
+  return msg.split("\n").map((line) => {
+    const name = esc(line.slice(0, 3));
+    const rest = esc(line.slice(3)).replace(/\|/g, '<span class="t-sep">|</span>')
+      .replace(/\^/g, '<span class="t-sep">^</span>').replace(/~/g, '<span class="t-sep">~</span>');
+    return '<span class="t-seg">' + name + "</span>" + rest;
+  }).join("\n");
+}
+
+function table(head, rows, cls) {
+  if (!rows.length) return '<div class="empty">Nothing to show.</div>';
+  return '<table><thead><tr>' + head.map((h) => "<th>" + esc(h) + "</th>").join("") + "</tr></thead><tbody>" +
+    rows.map((r) => "<tr>" + r.map((c, i) => '<td class="' + ((cls && cls[i]) || "") + '">' + c + "</td>").join("") + "</tr>").join("") +
+    "</tbody></table>";
+}
+function setCount(id, n, level) {
+  const el = $(id);
+  el.textContent = n ? "(" + n + ")" : "";
+  el.className = "count" + (n && level ? " " + level : "");
+}
+
+function renderReport(res) {
+  $("tab-trace").innerHTML =
+    '<div class="tab-note">Every element the converter read, and where it landed. ' +
+    (res.kind === "fhir" ? "Source is HL7 v2 field notation" : "Source is FHIR element paths") + ".</div>" +
+    table(["Source", "Target", "Value", "Note"],
+      res.trace.map((t) => [esc(t.src), esc(t.dst), esc(t.val.length > 90 ? t.val.slice(0, 90) + "…" : t.val), esc(t.note)]),
+      ["src", "dst", "val", "note"]);
+  setCount("c-trace", res.trace.length, "");
+
+  const sevRank = { error: 0, warn: 1, info: 2 };
+  const sorted = res.issues.slice().sort((a, b) => sevRank[a.sev] - sevRank[b.sev]);
+  $("tab-warn").innerHTML = res.issues.length
+    ? table(["Severity", "Where", "What"],
+      sorted.map((x) => ['<span class="sev ' + (x.sev === "warn" ? "warn" : x.sev === "error" ? "err" : "info") + '">' + x.sev + "</span>", esc(x.where), esc(x.text)]),
+      ["", "src", "val"])
+    : '<div class="empty"><span class="sev ok">clean</span> &nbsp;No structural problems and no guesses worth flagging.</div>';
+  const errs = res.issues.filter((x) => x.sev === "error").length;
+  const warns = res.issues.filter((x) => x.sev === "warn").length;
+  setCount("c-warn", res.issues.length, errs ? "bad" : warns ? "warn" : "");
+
+  $("tab-loss").innerHTML =
+    '<div class="tab-note">Populated in the source, read by nothing in the mapping. If something here matters to you, the conversion is not safe for your interface as it stands.</div>' +
+    (res.lossy.length
+      ? table([res.kind === "fhir" ? "Field" : "Element", "What it is", "Value in the source"],
+        res.lossy.map((l) => [esc(l.field), esc(l.label), esc(l.value)]), ["src", "note", "val"])
+      : '<div class="empty"><span class="sev ok">complete</span> &nbsp;Every populated element was read by the mapping.</div>');
+  setCount("c-loss", res.lossy.length, res.lossy.length ? "warn" : "");
+
+  $("tab-spec").innerHTML =
+    '<div class="tab-note">Segments in ' + (res.kind === "fhir" ? "the source message" : "the generated message") +
+    (res.structKey ? ', checked against the <code>' + esc(res.structKey) + "</code> structure" : "") + ".</div>" +
+    table(["Line", "Segment", "Name (v2.5.1)", "Populated fields", "Read by the mapping"],
+      res.anatomy.map((a) => [String(a.line), '<span class="t-seg">' + esc(a.seg) + "</span>", esc(a.name), String(a.populated),
+      a.mapped === a.populated ? '<span class="sev ok">all ' + a.mapped + "</span>" : esc(a.mapped + " of " + a.populated)]),
+      ["", "src", "note", "val", ""]);
+  setCount("c-spec", res.anatomy.length, "");
+
+  $("tab-map").innerHTML =
+    '<div class="tab-note">The mapping this tool implements, segment by segment. Field names and code tables come from the same v2.5.1 reference as <a href="https://coffeemilktea.github.io/mcp/">the MCP server</a> on this site.</div>' +
+    table(["Segment", "FHIR R4", "Notes"],
+      MAPPING_TABLE.map((m) => ['<span class="t-seg">' + m[0] + "</span>", esc(m[1]), esc(m[2])]), ["src", "dst", "note"]);
+}
+
+function renderTrip(rows, label) {
+  $("tab-trip").innerHTML =
+    '<div class="tab-note">' + esc(label) + "</div>" +
+    (rows.length
+      ? table(["Path", "Original", "After the round trip"],
+        rows.map((r) => [esc(r.path), esc(String(r.a).slice(0, 120)), esc(String(r.b).slice(0, 120))]), ["src", "d-a", "d-b"])
+      : '<div class="empty"><span class="sev ok">identical</span> &nbsp;The round trip changed nothing.</div>');
+  setCount("c-trip", rows.length, rows.length ? "warn" : "");
+}
+
+function showError(msg) {
+  ui.output.innerHTML = '<span style="color:var(--red)">' + esc(msg) + "</span>";
+  ui.stat.textContent = "";
+  $("tab-warn").innerHTML = table(["Severity", "Where", "What"],
+    [['<span class="sev err">error</span>', "input", esc(msg)]], ["", "src", "val"]);
+  setCount("c-warn", 1, "bad");
+  ["c-trace", "c-loss", "c-spec", "c-trip"].forEach((c) => setCount(c, 0, ""));
+  ["tab-trace", "tab-loss", "tab-spec", "tab-trip"].forEach((t) => { $(t).innerHTML = '<div class="empty">Nothing to show — the input could not be converted.</div>'; });
+  $("p-warn").checked = true;
+  lastResult = null;
+}
+
+function convert() {
+  const src = ui.input.value.trim();
+  if (!src) { ui.output.textContent = ""; ui.stat.textContent = ""; return; }
+  const t0 = performance.now();
+  try {
+    if (dirV2F()) {
+      const res = hl7ToFhir(src);
+      const json = JSON.stringify(res.bundle, null, 2);
+      ui.output.innerHTML = highlightJson(json);
+      lastResult = { text: json, res, filename: "bundle.json", mime: "application/fhir+json" };
+      const kinds = {};
+      res.bundle.entry.forEach((e) => { kinds[e.resource.resourceType] = (kinds[e.resource.resourceType] || 0) + 1; });
+      ui.stat.innerHTML = "<b>" + res.anatomy.length + "</b> segments → <b>" + res.bundle.entry.length + "</b> resources (" +
+        esc(Object.keys(kinds).map((k) => k + (kinds[k] > 1 ? " ×" + kinds[k] : "")).join(", ")) + ") in " + (performance.now() - t0).toFixed(1) + " ms";
+      renderReport(res);
+    } else {
+      const res = fhirToHl7(src);
+      ui.output.innerHTML = highlightHl7(res.hl7);
+      lastResult = { text: res.hl7, cr: res.hl7cr, res, filename: "message.hl7", mime: "text/plain" };
+      ui.stat.innerHTML = "<b>" + res.structKey + "</b> — <b>" + res.anatomy.length + "</b> segments in " + (performance.now() - t0).toFixed(1) + " ms";
+      renderReport(res);
+    }
+    renderTrip([], "Press “Round-trip check” to convert the output back and compare it with the input.");
+    setCount("c-trip", 0, "");
+  } catch (e) {
+    showError(e.friendly ? e.message : (e.message || String(e)));
+    if (!e.friendly && window.console) console.error(e);
+  }
+}
+
+function roundTrip() {
+  const src = ui.input.value.trim();
+  if (!src) return;
+  try {
+    if (dirV2F()) {
+      const there = hl7ToFhir(src);
+      const back = fhirToHl7(JSON.stringify(there.bundle));
+      renderTrip(diffHl7(src, back.hl7),
+        "HL7 → FHIR → HL7. Differences below are what the mapping cannot carry both ways; an empty table means the message survived intact.");
+    } else {
+      const there = fhirToHl7(src);
+      const back = hl7ToFhir(there.hl7);
+      renderTrip(diffJson(JSON.parse(src), back.bundle),
+        "FHIR → HL7 → FHIR. Resource ids, fullUrls and references are ignored — they are regenerated on every conversion. Everything else that differs is a real loss.");
+    }
+    $("p-trip").checked = true;
+  } catch (e) {
+    renderTrip([{ path: "round trip failed", a: e.message, b: "—" }], "The round trip could not complete.");
+    $("p-trip").checked = true;
+  }
+}
+
+/* ── wiring ── */
+function fillSamples() {
+  const keys = Object.keys(SAMPLES);
+  ui.sample.innerHTML = '<option value="">Load a sample…</option>' +
+    keys.map((k) => '<option value="' + esc(k) + '">' + esc(dirV2F() ? k : k + " (as FHIR)") + "</option>").join("");
+}
+function loadSample(key) {
+  if (!key || !SAMPLES[key]) return;
+  if (dirV2F()) ui.input.value = SAMPLES[key];
+  else {
+    try { ui.input.value = JSON.stringify(hl7ToFhir(SAMPLES[key]).bundle, null, 2); }
+    catch (e) { ui.input.value = SAMPLES[key]; }
+  }
+  convert();
+}
+function syncDirection() {
+  const v2f = dirV2F();
+  ui.inTitle.textContent = v2f ? "HL7 v2.5.1 message" : "FHIR R4 Bundle";
+  ui.inTitle.className = "pane-title " + (v2f ? "hl7" : "fhir");
+  ui.outTitle.textContent = v2f ? "FHIR R4 Bundle" : "HL7 v2.5.1 message";
+  ui.outTitle.className = "pane-title " + (v2f ? "fhir" : "hl7");
+  ui.input.placeholder = v2f
+    ? "Paste an HL7 v2.5.1 message here — one segment per line — or pick a sample above."
+    : "Paste a FHIR R4 Bundle (or a single resource) here, or pick a sample above.";
+  fillSamples();
+}
+
+/* Flipping direction with the other format still in the box is the common case:
+   carry the last output over rather than showing a parse error. */
+function flipDirection() {
+  const src = ui.input.value.trim();
+  const looksJson = src.charAt(0) === "{";
+  const wantsJson = !dirV2F();
+  if (src && looksJson !== wantsJson && lastResult) {
+    const outIsJson = lastResult.filename === "bundle.json";
+    if (outIsJson === wantsJson) ui.input.value = lastResult.text;
+  }
+  syncDirection();
+  convert();
+}
+$("dir-v2f").addEventListener("change", flipDirection);
+$("dir-f2v").addEventListener("change", flipDirection);
+ui.sample.addEventListener("change", (e) => loadSample(e.target.value));
+$("btn-convert").addEventListener("click", convert);
+$("btn-trip").addEventListener("click", roundTrip);
+$("btn-clear").addEventListener("click", () => {
+  ui.input.value = "";
+  ui.output.textContent = "";
+  ui.stat.textContent = "";
+  ui.sample.value = "";
+  ["c-trace", "c-warn", "c-loss", "c-spec", "c-trip"].forEach((c) => setCount(c, 0, ""));
+  ["tab-trace", "tab-warn", "tab-loss", "tab-spec", "tab-trip"].forEach((t) => { $(t).innerHTML = '<div class="empty">Nothing converted yet.</div>'; });
+  ui.input.focus();
+});
+$("btn-swap").addEventListener("click", () => {
+  if (!lastResult) return;
+  ui.input.value = lastResult.text;
+  $(dirV2F() ? "dir-f2v" : "dir-v2f").checked = true;
+  syncDirection();
+  convert();
+});
+$("btn-copy").addEventListener("click", () => {
+  if (!lastResult) return;
+  navigator.clipboard.writeText(lastResult.cr || lastResult.text).then(() => {
+    const b = $("btn-copy"); b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200);
+  }, () => { /* clipboard blocked — the text is selectable in the pane */ });
+});
+$("btn-dl").addEventListener("click", () => {
+  if (!lastResult) return;
+  const blob = new Blob([lastResult.cr || lastResult.text], { type: lastResult.mime + ";charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = lastResult.filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+$("btn-paste").addEventListener("click", () => {
+  if (!navigator.clipboard || !navigator.clipboard.readText) { ui.input.focus(); return; }
+  navigator.clipboard.readText().then((t) => { if (t) { ui.input.value = t; convert(); } }, () => ui.input.focus());
+});
+
+let debounce = null;
+ui.input.addEventListener("input", () => {
+  clearTimeout(debounce);
+  debounce = setTimeout(convert, 350);
+});
+ui.input.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); convert(); }
+});
+
+syncDirection();
+ui.input.value = SAMPLES[Object.keys(SAMPLES)[0]];
+ui.sample.value = Object.keys(SAMPLES)[0];
+convert();
+</script>
+</body>
+</html>

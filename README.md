@@ -17,6 +17,7 @@ A curated set of these tools is published at **[ocha.dev](https://ocha.dev)**
 | [`tools/dicom-viewer.html`](tools/dicom-viewer.html) | Generic DICOM Viewer | Render DICOM image series locally, view tags, perform window/level, and morph tag values. | <details><summary>View</summary>![Generic DICOM Viewer](screenshots/dicom-viewer.png)</details> |
 | [`tools/dicom-hl7-order.html`](tools/dicom-hl7-order.html) | DICOM → HL7 Order Generator | Extract attributes from a DICOM file to generate a standard HL7 ORM^O01 radiology order. | <details><summary>View</summary>![DICOM -> HL7 Order Generator](screenshots/dicom-hl7-order.png)</details> |
 | [`tools/mwl-simulator.html`](tools/mwl-simulator.html) | DICOM MWL Simulator | Simulate a DICOM Modality Worklist (C-FIND SCU) querying a worklist SCP with mock data. | <details><summary>View</summary>![DICOM MWL Simulator](screenshots/mwl-simulator.png)</details> |
+| [`tools/hl7-fhir-converter.html`](tools/hl7-fhir-converter.html) | HL7 v2 ↔ FHIR Converter | Convert HL7 v2.5.1 messages to FHIR R4 message Bundles and back, with a field-level mapping trace, a list of everything not carried over, and a round-trip check. | — |
 
 ### Detailed Tool Overview & Use Cases
 
@@ -61,6 +62,20 @@ A curated set of these tools is published at **[ocha.dev](https://ocha.dev)**
   - Testing C-FIND SCU/SCP interactions and query filter compliance.
   - Verifying RIS scheduled procedure updates.
   - Training clinical engineers on modality worklist querying.
+
+#### 🔁 HL7 v2 ↔ FHIR Converter ([`tools/hl7-fhir-converter.html`](tools/hl7-fhir-converter.html))
+- **Description:** Two-way converter between HL7 v2.5.1 (ADT, ORM, ORU, SIU, ACK) and FHIR R4 message
+  Bundles. Segment field names, code tables and message structures come from the v2.5.1 reference data
+  behind [coffeemilktea.github.io/mcp/](https://coffeemilktea.github.io/mcp/). Because v2 and FHIR do
+  not line up one-to-one, the mapping decisions are surfaced rather than buried: a trace of every
+  element read and where it landed, a measured list of every populated element the mapping never
+  touched, and a round-trip diff. Resource ids are content-derived, so the same message always converts
+  to byte-identical JSON.
+- **Key Use Cases:**
+  - Scoping a v2-to-FHIR migration: see, per message, exactly which fields have nowhere to go.
+  - Producing a starting FHIR Bundle from a real interface message without hand-writing JSON.
+  - Turning a FHIR Bundle back into a v2 message to feed a legacy interface or test harness.
+  - Diffing two v2 messages semantically by converting both and comparing the Bundles.
 
 ## Subprojects
 

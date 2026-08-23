@@ -4,9 +4,10 @@ layout: default
 
 <section class="intro">
   <p>
-    Six single-page utilities for working with <strong>HL7 v2.x</strong> and <strong>DICOM</strong> —
-    parsing messages, inspecting and editing imaging metadata, generating test data, and simulating
-    modality worklists. No installs, no accounts, and nothing ever leaves your machine.
+    Seven single-page utilities for working with <strong>HL7 v2.x</strong>, <strong>FHIR</strong> and
+    <strong>DICOM</strong> — parsing and converting messages, inspecting and editing imaging metadata,
+    generating test data, and simulating modality worklists. No installs, no accounts, and nothing ever
+    leaves your machine.
   </p>
 </section>
 
@@ -60,6 +61,14 @@ layout: default
       <span class="tool-subtitle">Workflow Integration</span>
       <p>Read tags from a DICOM file and generate an HL7 ORM^O01 radiology order, with a mapping table showing exactly which attribute produced each field.</p>
       <a href="{{ '/tools/dicom-hl7-order.html' | relative_url }}" class="btn-launch">Launch &rarr;</a>
+    </li>
+
+    <li class="tool-card">
+      <div class="tool-card-icon">🔁</div>
+      <h3>HL7 v2 &harr; FHIR Converter</h3>
+      <span class="tool-subtitle">Clinical Messaging</span>
+      <p>Convert HL7 v2.5.1 messages (ADT, ORM, ORU, SIU, ACK) into FHIR R4 message Bundles and back again. Shows a field-level mapping trace, lists everything the mapping does not carry over, and round-trips the result so you can see exactly what survives.</p>
+      <a href="{{ '/tools/hl7-fhir-converter.html' | relative_url }}" class="btn-launch">Launch &rarr;</a>
     </li>
 
   </ul>
