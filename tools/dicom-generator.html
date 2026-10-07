@@ -378,7 +378,7 @@
   </div>
   <div class="app-actions">
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button class="btn-theme" id="btn-theme">
+    <button class="btn-theme" id="btn-theme" aria-label="Switch to light mode">
       <span class="theme-icon">☀️</span>
       <span class="theme-label">Light</span>
     </button>
@@ -389,8 +389,8 @@
 
   <!-- ── TABS ── -->
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('generator')" id="tab-gen-btn">Generator</button>
-    <button class="tab-btn"        onclick="switchTab('reader')"    id="tab-rdr-btn">Tag Reader</button>
+    <button class="tab-btn active" onclick="switchTab('generator')" id="tab-gen-btn" aria-label="Generator tab">Generator</button>
+    <button class="tab-btn"        onclick="switchTab('reader')"    id="tab-rdr-btn" aria-label="Tag Reader tab">Tag Reader</button>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════ GENERATOR PANE -->
@@ -561,15 +561,20 @@
               <div class="upload-name" id="uploadName"></div>
               <div class="upload-dims" id="uploadDims"></div>
             </div>
-            <button class="upload-clear" onclick="clearUpload()">Remove</button>
+            <button class="upload-clear" onclick="clearUpload()" aria-label="Remove uploaded image">Remove</button>
           </div>
         </div>
       </div>
     </div>
 
     <hr />
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px">
+      <button type="button" class="btn-add-tag" onclick="applySamplePreset('CT')" aria-label="Load sample CT Secondary Capture preset">Sample CT/SC</button>
+      <button type="button" class="btn-add-tag" onclick="applySamplePreset('SC')" aria-label="Load sample Secondary Capture preset">Sample SC</button>
+      <span style="font-size:12px;color:var(--muted)">One-click demo patient / study / series values</span>
+    </div>
     <button class="btn btn-primary" onclick="generateAndDownload()">Generate &amp; Download DICOM (.dcm)</button>
-    <div id="status" class="status"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
 
     <div class="preview-section" id="previewSection">
       <h2>Generated File</h2>
@@ -601,7 +606,7 @@
         <span>File:</span>
         <span class="reader-file-name" id="readerFileName"></span>
         <div class="reader-summary" id="readerSummary"></div>
-        <button class="reader-clear" onclick="clearReader()">✕ Clear</button>
+        <button class="reader-clear" onclick="clearReader()" aria-label="Clear tag reader">✕ Clear</button>
       </div>
       <div class="reader-wrap">
         <table class="tag-table" id="readerTable">
@@ -900,6 +905,29 @@ function buildDICOM(cfg) {
 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
+function applySamplePreset(kind) {
+  const isCT = kind === 'CT';
+  document.getElementById('patientName').value = isCT ? 'SAMPLE^CT^PATIENT' : 'SAMPLE^SC^PATIENT';
+  document.getElementById('patientId').value = isCT ? 'CT-DEMO-001' : 'SC-DEMO-001';
+  document.getElementById('dob').value = '1975-06-15';
+  document.getElementById('patientSex').value = 'O';
+  document.getElementById('accessionNumber').value = isCT ? 'ACCCTDEMO01' : 'ACCSCDEMO01';
+  document.getElementById('studyDescription').value = isCT ? 'CT CHEST W CONTRAST' : 'SECONDARY CAPTURE DEMO';
+  document.getElementById('referringPhysician').value = 'REFERRING^DEMO';
+  document.getElementById('modality').value = isCT ? 'CT' : 'OT';
+  document.getElementById('bodyPart').value = isCT ? 'CHEST' : 'OTHER';
+  document.getElementById('seriesDescription').value = isCT ? 'AXIAL 5MM' : 'SC SERIES';
+  document.getElementById('protocolName').value = isCT ? 'CT_CHEST_ROUTINE' : 'SC_DEMO';
+  document.getElementById('procedureDescription').value = isCT ? 'CT Chest with contrast' : 'Secondary Capture';
+  document.getElementById('procCodeValue').value = isCT ? '24627-2' : '';
+  document.getElementById('procCodingScheme').value = 'LOINC';
+  document.getElementById('procCodeMeaning').value = isCT ? 'CT Chest' : '';
+  document.getElementById('institutionName').value = 'DEMO HOSPITAL';
+  document.getElementById('departmentName').value = 'Radiology';
+  showStatus('ok', isCT ? 'Loaded sample CT Secondary Capture preset.' : 'Loaded sample Secondary Capture preset.');
 }
 
 function showStatus(type, msg) {
