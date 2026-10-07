@@ -305,7 +305,45 @@
     font-family: var(--font-mono);
   }
   .morph-row input:focus, .morph-row select:focus { outline: none; border-color: var(--accent); }
-  .m-tag { width: 92px; }
+  .morph-row input[aria-invalid="true"] { border-color: var(--red); }
+  .m-tag-wrap { position: relative; width: 92px; }
+  .m-tag { width: 100%; box-sizing: border-box; }
+  .m-tag-list {
+    display: none;
+    position: absolute;
+    left: 0; right: 0; top: calc(100% + 2px);
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 40;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  .m-tag-list.open { display: block; }
+  .m-tag-opt {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 5px 7px;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 10.5px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+  }
+  .m-tag-opt:hover, .m-tag-opt[aria-selected="true"] { background: var(--surface2); color: var(--accent); }
+  .m-tag-opt .opt-name { color: var(--muted); margin-left: 6px; font-family: var(--font-sans, inherit); }
+  .m-tag-err {
+    display: none;
+    width: 100%;
+    flex-basis: 100%;
+    margin: 2px 0 4px;
+    font-size: 11px;
+    color: var(--red);
+  }
+  .m-tag-err.on { display: block; }
   .m-val { flex: 1; min-width: 100px; }
   .rule-list { font-family: var(--font-mono); font-size: 11px; }
   .rule-item {
@@ -522,7 +560,10 @@
         <h4>Morph rules</h4>
         <div class="hint" style="margin-bottom:8px">Rules are applied in order to top-level tags. <b>set</b> creates the tag if missing; <b>remove</b> deletes it; <b>new&nbsp;UID</b> regenerates the UID consistently across all files (identical old UIDs map to identical new UIDs, preserving study/series linkage).</div>
         <div class="morph-row">
-          <input type="text" class="m-tag" id="mr-tag" placeholder="0010,0010" list="tag-datalist" />
+          <div class="m-tag-wrap">
+            <input type="text" class="m-tag" id="mr-tag" placeholder="0010,0010" autocomplete="off" aria-autocomplete="list" aria-controls="mr-tag-list" aria-expanded="false" role="combobox" />
+            <div class="m-tag-list" id="mr-tag-list" role="listbox" hidden></div>
+          </div>
           <select id="mr-action">
             <option value="set">set</option>
             <option value="remove">remove</option>
@@ -530,8 +571,8 @@
           </select>
           <input type="text" class="m-val" id="mr-value" placeholder="value" />
           <button class="tbtn" id="mr-add">+ Add</button>
+          <div class="m-tag-err" id="mr-tag-err" role="alert" aria-live="polite"></div>
         </div>
-        <datalist id="tag-datalist"></datalist>
         <div class="rule-list" id="rule-list"></div>
         <div class="morph-row" style="margin-top:8px">
           <button class="tbtn" id="btn-anon">🕶 Add anonymize preset</button>
@@ -2675,14 +2716,33 @@ function renderRules(){
   });
 }
 
+function clearMrTagError(){
+  const inp = $('mr-tag');
+  const err = $('mr-tag-err');
+  inp.removeAttribute('aria-invalid');
+  err.textContent = '';
+  err.classList.remove('on');
+}
+function showMrTagError(msg){
+  const inp = $('mr-tag');
+  const err = $('mr-tag-err');
+  inp.setAttribute('aria-invalid', 'true');
+  err.textContent = msg;
+  err.classList.add('on');
+  inp.focus();
+}
 $('mr-add').addEventListener('click', ()=>{
   const tag = normTag($('mr-tag').value);
-  if (!tag){ showMessage('⚠️', 'Enter a tag as gggg,eeee (hex)'); return; }
+  if (!tag){ showMrTagError('Enter a tag as gggg,eeee (hex)'); return; }
+  clearMrTagError();
   const action = $('mr-action').value;
   rules.push({tag, action, value: $('mr-value').value});
   $('mr-tag').value=''; $('mr-value').value='';
+  closeMrTagList();
   renderRules();
 });
+$('mr-tag').addEventListener('input', ()=>{ clearMrTagError(); filterMrTagList(); });
+$('mr-tag').addEventListener('change', clearMrTagError);
 $('btn-clear-rules').addEventListener('click', ()=>{ rules.length=0; renderRules(); });
 
 $('btn-anon').addEventListener('click', ()=>{
@@ -2820,17 +2880,69 @@ function downloadBlob(blob, name){
   setTimeout(()=>URL.revokeObjectURL(a.href), 10000);
 }
 
-/* ── datalist for tag autocomplete ── */
+/* ── tag combobox (opens on click/focus, not only typing) ── */
+const MR_TAG_OPTS = [];
 (function(){
-  const dl = $('tag-datalist');
   for (const [tag, [vr, name]] of Object.entries(DICT)){
     if (!name || tag.startsWith('0002') || tag.startsWith('FFFE')) continue;
-    const o=document.createElement('option');
-    o.value = tag.slice(0,4).toLowerCase()+','+tag.slice(4).toLowerCase();
-    o.label = name;
-    dl.appendChild(o);
+    MR_TAG_OPTS.push({
+      value: tag.slice(0,4).toLowerCase()+','+tag.slice(4).toLowerCase(),
+      name
+    });
   }
+  MR_TAG_OPTS.sort((a,b)=>a.value.localeCompare(b.value));
 })();
+function closeMrTagList(){
+  const list = $('mr-tag-list');
+  list.classList.remove('open');
+  list.hidden = true;
+  list.innerHTML = '';
+  $('mr-tag').setAttribute('aria-expanded', 'false');
+}
+function filterMrTagList(){
+  const inp = $('mr-tag');
+  const list = $('mr-tag-list');
+  const q = inp.value.trim().toLowerCase().replace(/[^0-9a-f,]/g,'');
+  const matches = MR_TAG_OPTS.filter(o =>
+    !q || o.value.indexOf(q) === 0 || o.name.toLowerCase().indexOf(q) !== -1
+  ).slice(0, 40);
+  list.innerHTML = '';
+  if (!matches.length){ closeMrTagList(); return; }
+  matches.forEach((o, i)=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'm-tag-opt';
+    btn.setAttribute('role', 'option');
+    btn.setAttribute('aria-selected', i===0 ? 'true' : 'false');
+    btn.innerHTML = escapeHtml(o.value)+'<span class="opt-name">'+escapeHtml(o.name)+'</span>';
+    btn.addEventListener('mousedown', e=>{
+      e.preventDefault();
+      inp.value = o.value;
+      clearMrTagError();
+      closeMrTagList();
+      inp.focus();
+    });
+    list.appendChild(btn);
+  });
+  list.hidden = false;
+  list.classList.add('open');
+  inp.setAttribute('aria-expanded', 'true');
+}
+$('mr-tag').addEventListener('focus', filterMrTagList);
+$('mr-tag').addEventListener('click', filterMrTagList);
+$('mr-tag').addEventListener('keydown', e=>{
+  const list = $('mr-tag-list');
+  if (e.key === 'Escape'){ closeMrTagList(); return; }
+  if (e.key === 'ArrowDown' && list.classList.contains('open')){
+    e.preventDefault();
+    const first = list.querySelector('.m-tag-opt');
+    if (first) first.focus();
+  }
+});
+document.addEventListener('click', e=>{
+  const wrap = document.querySelector('.m-tag-wrap');
+  if (wrap && !wrap.contains(e.target)) closeMrTagList();
+});
 
 /* ── SOP class modal ── */
 (function(){
