@@ -597,6 +597,9 @@
       <div class="reader-drop-icon">🔬</div>
       <div class="reader-drop-text">Click to open or drag &amp; drop a DICOM file</div>
       <div class="reader-drop-hint">.dcm — parsed entirely in-browser, nothing is uploaded</div>
+      <div style="margin-top:14px" onclick="event.stopPropagation()">
+        <button type="button" class="btn-add-tag" id="readerDemoBtn" onclick="loadReaderDemo()" aria-label="Load demo DICOM file into Tag Reader">Load demo file</button>
+      </div>
     </div>
 
     <div class="reader-status" id="readerStatus"></div>
@@ -1513,6 +1516,35 @@ function handleDICOMFile(file) {
     }
   };
   fr.readAsArrayBuffer(file);
+}
+
+function loadReaderDemo() {
+  const cfg = {
+    patientName: 'DEMO^TAGREADER^PATIENT',
+    patientID: 'DEMO-TR-001',
+    dob: '1980-01-15',
+    patientSex: 'O',
+    accessionNumber: 'ACCTRDEMO01',
+    studyDescription: 'DEMO SECONDARY CAPTURE',
+    referringPhysician: 'REFERRING^DEMO',
+    modality: 'OT',
+    seriesDescription: 'TAG READER DEMO',
+    bodyPart: 'OTHER',
+    protocolName: 'DEMO_PROTOCOL',
+    procedureDescription: 'Synthetic demo DICOM for Tag Reader',
+    procCodeValue: '',
+    procCodingScheme: 'DCM',
+    procCodeMeaning: '',
+    institutionName: 'DEMO HOSPITAL',
+    departmentName: 'Radiology',
+  };
+  try {
+    const bytes = buildDICOM(cfg);
+    const file = new File([bytes], 'DEMO_TAGREADER.dcm', { type: 'application/dicom' });
+    handleDICOMFile(file);
+  } catch (err) {
+    showReaderError('Demo build failed: ' + err.message);
+  }
 }
 
 // ─── Event wiring (reader) ────────────────────────────────────────────────────
