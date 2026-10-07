@@ -219,11 +219,11 @@
       <input id="scpAE" value="MWL_SCP" maxlength="16" oninput="buildExtUrl()">
     </div>
     <div class="mode-toggle">
-      <button class="mode-btn active-local" id="btn-local" onclick="setMode('local')">◉ SIMULATED</button>
-      <button class="mode-btn" id="btn-ext" onclick="setMode('external')">⇌ EXTERNAL</button>
+      <button class="mode-btn active-local" id="btn-local" onclick="setMode('local')" aria-label="Simulated worklist mode">◉ SIMULATED</button>
+      <button class="mode-btn" id="btn-ext" onclick="setMode('external')" aria-label="External DICOMweb worklist mode">⇌ EXTERNAL</button>
     </div>
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button id="btn-theme" class="btn-theme"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
+    <button id="btn-theme" class="btn-theme" aria-label="Switch to light mode"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
   </div>
 </header>
 
@@ -253,8 +253,9 @@
   </select>
   <input id="ext-credentials" placeholder="token or user:pass" style="display:none;width:130px">
   <button class="btn btn-ext btn-sm" onclick="testConnection()">Test ↗</button>
-  <span id="conn-status" class="conn-status conn-idle">idle</span>
-  <span class="ext-warn">⚠ CORS required</span>
+  <span id="conn-status" class="conn-status conn-idle" role="status" aria-live="polite">idle</span>
+  <span id="mwl-status" class="conn-status conn-idle" role="status" aria-live="polite" style="display:none"></span>
+  <span class="ext-warn" role="status" aria-live="polite">⚠ CORS required · Do not send real PHI to untrusted endpoints</span>
 </div>
 
 <div class="tabs">
@@ -393,7 +394,8 @@
 <!-- Worklist Manager Tab -->
 <div id="tab-worklist" class="tab-content">
   <div class="wl-toolbar">
-    <button class="btn btn-success btn-sm" onclick="openAddModal()">+ Add Item</button>
+    <button class="btn btn-success btn-sm" onclick="openAddModal()" aria-label="Add worklist item">+ Add Item</button>
+    <button class="btn btn-secondary btn-sm" onclick="resetDemoData()" aria-label="Reset demo worklist data">Reset demo data</button>
     <span class="wl-count" id="wl-count">0 items</span>
   </div>
   <div class="wl-table-wrap">
@@ -415,7 +417,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modal-title">Add Worklist Item</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close dialog">✕</button>
     </div>
     <div class="modal-body">
       <div class="full section-label">Patient</div>
@@ -689,7 +691,7 @@ function performLocalCFind(q, returnKeys) {
 // ─── External C-FIND (DICOMweb QIDO-RS) ──────────────────────────────────────
 async function performExternalCFind(q, returnKeys) {
   const baseUrl = document.getElementById('ext-url').value.trim();
-  if (!baseUrl) { alert('Please enter an endpoint URL in the external config bar.'); return; }
+  if (!baseUrl) { showMwlStatus('Please enter an endpoint URL in the external config bar.'); return; }
 
   const paramStyle = document.getElementById('ext-param-style').value;
   const params = new URLSearchParams();
@@ -1202,7 +1204,7 @@ function updateAuthUI() {
 
 async function testConnection() {
   const url = document.getElementById('ext-url').value.trim();
-  if (!url) { alert('Enter an endpoint URL first.'); return; }
+  if (!url) { showMwlStatus('Enter an endpoint URL first.'); return; }
   const statusEl = document.getElementById('conn-status');
   statusEl.textContent = '…';
   statusEl.className = 'conn-status conn-idle';
@@ -1327,8 +1329,8 @@ function saveItem() {
     priority:           document.getElementById('m-priority').value,
     studyUID:           editId ? (worklist.find(w=>w.id===editId)?.studyUID || genUID()) : genUID(),
   };
-  if (!item.patientName) { alert('Patient Name is required.'); return; }
-  if (!item.accessionNumber) { alert('Accession Number is required.'); return; }
+  if (!item.patientName) { showMwlStatus('Patient Name is required.'); return; }
+  if (!item.accessionNumber) { showMwlStatus('Accession Number is required.'); return; }
   if (editId) { const idx=worklist.findIndex(w=>w.id===editId); if(idx!==-1) worklist[idx]=item; }
   else worklist.push(item);
   saveWorklist();
@@ -1344,17 +1346,21 @@ function deleteItem(id) {
 
 // ─── Persistence ───
 const WL_STORAGE_KEY = 'mwl-simulator-worklist';
-function saveWorklist() {
-  try { localStorage.setItem(WL_STORAGE_KEY, JSON.stringify(worklist)); } catch (e) { /* storage unavailable */ }
+
+function showMwlStatus(msg) {
+  const el = document.getElementById('mwl-status') || document.getElementById('conn-status');
+  if (!el) return;
+  if (el.id === 'mwl-status') el.style.display = msg ? '' : 'none';
+  el.textContent = msg || (el.id === 'conn-status' ? 'idle' : '');
+  el.className = 'conn-status ' + (msg ? 'conn-err' : 'conn-idle');
+  if (msg) setTimeout(() => {
+    if (el.id === 'mwl-status') { el.style.display = 'none'; el.textContent = ''; }
+  }, 4000);
 }
-function loadWorklist() {
-  try {
-    const raw = localStorage.getItem(WL_STORAGE_KEY);
-    if (raw !== null) { worklist = JSON.parse(raw) || []; return; }
-  } catch (e) { /* fall through to seed */ }
-  // First run — seed sample items so C-FIND queries have something to match
+
+function seedDemoWorklist() {
   const today = isoToDicom(todayISO());
-  worklist = [
+  return [
     { id: uid(), patientName:'DOE^JOHN^A', patientID:'MRN001234', dob:'19800515', sex:'M',
       accessionNumber:'ACC0001', procedureDesc:'CT CHEST WITH CONTRAST', procedureID:'RP001',
       referringPhysician:'SMITH^JAMES', modality:'CT', stationAE:'CT_SCANNER_01', stationName:'CT1',
@@ -1371,6 +1377,28 @@ function loadWorklist() {
       stepID:'SP003', schedDate:today, schedTime:'1315', performingPhysician:'JONES^ROBERT',
       stepDesc:'US ABDOMEN COMPLETE', institutionName:'GENERAL HOSPITAL', priority:'ROUTINE', studyUID: genUID() },
   ];
+}
+
+function resetDemoData() {
+  worklist = seedDemoWorklist();
+  saveWorklist();
+  renderWorklistTable();
+  updateWorklistCount();
+  showMwlStatus('Demo worklist restored (3 sample items).');
+  const el = document.getElementById('mwl-status');
+  if (el) el.className = 'conn-status conn-ok';
+}
+
+function saveWorklist() {
+  try { localStorage.setItem(WL_STORAGE_KEY, JSON.stringify(worklist)); } catch (e) { /* storage unavailable */ }
+}
+function loadWorklist() {
+  try {
+    const raw = localStorage.getItem(WL_STORAGE_KEY);
+    if (raw !== null) { worklist = JSON.parse(raw) || []; return; }
+  } catch (e) { /* fall through to seed */ }
+  // First run — seed sample items so C-FIND queries have something to match
+  worklist = seedDemoWorklist();
   saveWorklist();
 }
 

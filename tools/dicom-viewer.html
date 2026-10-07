@@ -424,21 +424,21 @@
   </div>
   <div class="app-actions">
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button id="btn-theme" class="btn-theme"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
+    <button id="btn-theme" class="btn-theme" aria-label="Switch to light mode"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
   </div>
 </header>
 
 <div class="toolbar">
-  <button class="tbtn" id="btn-sample">🔬 Demo Image</button>
-  <button class="tbtn" id="btn-open">📂 Open Files</button>
-  <button class="tbtn" id="btn-open-dir">🗂 Open Folder</button>
+  <button class="tbtn" id="btn-sample" aria-label="Load demo DICOM image">🔬 Demo Image</button>
+  <button class="tbtn" id="btn-open" aria-label="Open DICOM files">📂 Open Files</button>
+  <button class="tbtn" id="btn-open-dir" aria-label="Open DICOM folder">🗂 Open Folder</button>
   <input type="file" id="file-input" multiple hidden />
   <input type="file" id="dir-input" webkitdirectory hidden />
   <span class="sep"></span>
-  <button class="tbtn tool-btn active" data-tool="wl" title="Left-drag: adjust window / level (W)">🌓 W/L</button>
-  <button class="tbtn tool-btn" data-tool="pan" title="Left-drag: pan (P)">✋ Pan</button>
-  <button class="tbtn tool-btn" data-tool="zoom" title="Left-drag: zoom (Z)">🔍 Zoom</button>
-  <button class="tbtn tool-btn" data-tool="measure" title="Drag to measure distance (M)">📏 Measure</button>
+  <button class="tbtn tool-btn active" data-tool="wl" title="Left-drag: adjust window / level (W)" aria-label="Left-drag: adjust window / level (W)">🌓 W/L</button>
+  <button class="tbtn tool-btn" data-tool="pan" title="Left-drag: pan (P)" aria-label="Left-drag: pan (P)">✋ Pan</button>
+  <button class="tbtn tool-btn" data-tool="zoom" title="Left-drag: zoom (Z)" aria-label="Left-drag: zoom (Z)">🔍 Zoom</button>
+  <button class="tbtn tool-btn" data-tool="measure" title="Drag to measure distance (M)" aria-label="Drag to measure distance (M)">📏 Measure</button>
   <span class="sep"></span>
   <select id="wl-preset" title="Window presets">
     <option value="auto">W/L: Auto</option>
@@ -450,20 +450,20 @@
     <option value="-600,1500">CT Lung −600/1500</option>
     <option value="300,1500">CT Bone 300/1500</option>
   </select>
-  <button class="tbtn" id="btn-invert" title="Invert grayscale (I)">◐ Invert</button>
+  <button class="tbtn" id="btn-invert" title="Invert grayscale (I)" aria-label="Invert grayscale (I)">◐ Invert</button>
   <span class="sep"></span>
-  <button class="tbtn" id="btn-rot" title="Rotate 90° clockwise (R)">↻ Rotate</button>
-  <button class="tbtn" id="btn-fliph" title="Flip horizontal (H)">⇋ Flip H</button>
-  <button class="tbtn" id="btn-flipv" title="Flip vertical (V)">⇅ Flip V</button>
-  <button class="tbtn" id="btn-reset" title="Reset view (double-click viewport)">⟲ Reset</button>
+  <button class="tbtn" id="btn-rot" title="Rotate 90° clockwise (R)" aria-label="Rotate 90° clockwise (R)">↻ Rotate</button>
+  <button class="tbtn" id="btn-fliph" title="Flip horizontal (H)" aria-label="Flip horizontal (H)">⇋ Flip H</button>
+  <button class="tbtn" id="btn-flipv" title="Flip vertical (V)" aria-label="Flip vertical (V)">⇅ Flip V</button>
+  <button class="tbtn" id="btn-reset" title="Reset view (double-click viewport)" aria-label="Reset view (double-click viewport)">⟲ Reset</button>
   <span class="sep"></span>
-  <button class="tbtn" id="btn-overlays" title="Toggle DICOM overlay planes (group 60xx)">▦ Overlays</button>
-  <button class="tbtn" id="btn-text" title="Toggle corner annotations (T)">🅃 Text</button>
-  <button class="tbtn" id="btn-png" title="Save current view as PNG">🖼 PNG</button>
+  <button class="tbtn" id="btn-overlays" title="Toggle DICOM overlay planes (group 60xx)" aria-label="Toggle DICOM overlay planes (group 60xx)">▦ Overlays</button>
+  <button class="tbtn" id="btn-text" title="Toggle corner annotations (T)" aria-label="Toggle corner annotations (T)">🅃 Text</button>
+  <button class="tbtn" id="btn-png" title="Save current view as PNG" aria-label="Save current view as PNG">🖼 PNG</button>
   <span class="sep"></span>
-  <button class="tbtn" id="btn-sop" title="List of supported SOP classes">ℹ SOP Classes</button>
+  <button class="tbtn" id="btn-sop" title="List of supported SOP classes" aria-label="List of supported SOP classes">ℹ SOP Classes</button>
   <span class="spacer" style="flex:1"></span>
-  <button class="tbtn" id="btn-rpanel" title="Toggle tag panel">☰ Tags</button>
+  <button class="tbtn" id="btn-rpanel" title="Toggle tag panel" aria-label="Toggle tag panel">☰ Tags</button>
 </div>
 
 <div class="main">
@@ -483,7 +483,7 @@
       <div class="vp-overlay vp-tr" id="ov-tr"></div>
       <div class="vp-overlay vp-bl" id="ov-bl"></div>
       <div class="vp-overlay vp-br" id="ov-br"></div>
-      <div class="vp-msg" id="vp-msg">
+      <div class="vp-msg" id="vp-msg" role="status" aria-live="polite">
         <span class="big">🩻</span>
         Open DICOM files to begin<br>
         <span style="font-size:11px">
@@ -493,7 +493,7 @@
       </div>
     </div>
     <div class="framebar" id="framebar" style="display:none">
-      <button class="tbtn" id="btn-play" title="Play / pause cine (Space)">▶</button>
+      <button class="tbtn" id="btn-play" title="Play / pause cine (Space)" aria-label="Play / pause cine (Space)">▶</button>
       <label style="font-size:11px;color:var(--muted)">fps</label>
       <input type="number" id="fps-input" min="1" max="120" value="15" />
       <input type="range" id="frame-slider" min="0" max="0" value="0" />
@@ -2426,7 +2426,7 @@ async function loadFiles(fileList){
     }
   }
   if (errors.length && !added){
-    alert('No DICOM files could be parsed:\n'+errors.slice(0,8).join('\n'));
+    showMessage('⚠️', 'No DICOM files could be parsed:<br>' + errors.slice(0,8).join('<br>'));
   }
   rebuildSeries();
   if (added && state.seriesIdx < 0 && state.series.length) selectSeries(0);
@@ -2627,7 +2627,7 @@ function beginEdit(tr, el, f){
       el.val = encodeValue(el.vr, input.value);
       el._mod = true;
       markModified(f, el.tag);
-    } catch (err){ alert('Invalid value: '+err.message); }
+    } catch (err){ showMessage('⚠️', 'Invalid value: '+err.message); }
     renderTagTable();
   };
   input.addEventListener('keydown', e=>{
@@ -2677,7 +2677,7 @@ function renderRules(){
 
 $('mr-add').addEventListener('click', ()=>{
   const tag = normTag($('mr-tag').value);
-  if (!tag){ alert('Enter a tag as gggg,eeee (hex)'); return; }
+  if (!tag){ showMessage('⚠️', 'Enter a tag as gggg,eeee (hex)'); return; }
   const action = $('mr-action').value;
   rules.push({tag, action, value: $('mr-value').value});
   $('mr-tag').value=''; $('mr-value').value='';

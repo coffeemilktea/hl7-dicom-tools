@@ -382,7 +382,7 @@
   </div>
   <div class="app-actions">
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button class="btn-theme" id="btn-theme">
+    <button class="btn-theme" id="btn-theme" aria-label="Switch to light mode">
       <span class="theme-icon">☀️</span>
       <span class="theme-label">Light</span>
     </button>
@@ -450,6 +450,7 @@
     <div class="fields-bar-hdr">
       <span class="fields-bar-title">Patient &amp; Study Fields</span>
       <button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" onclick="refillFromDICOM()">↺ Refill from DICOM</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" onclick="loadSampleTags()" aria-label="Load sample DICOM tag values">Load sample tags</button>
     </div>
     <div class="fields-grid">
 
@@ -611,7 +612,7 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 /* ════════════════════════════════════════════════════
@@ -1245,7 +1246,7 @@ function handleFile(file) {
     try {
       parsedTags = parseDICOM(e.target.result);
     } catch(err) {
-      alert('DICOM parse error: ' + err.message);
+      showToast('DICOM parse error: ' + err.message);
       console.error(err);
       return;
     }
@@ -1323,6 +1324,30 @@ function nav_copy(text) {
     ta.select(); document.execCommand('copy');
     document.body.removeChild(ta); showToast('Copied!');
   });
+}
+
+
+function loadSampleTags() {
+  // Seed a minimal tag set so regenerate()/generateORM() can run without a file upload.
+  parsedTags = [
+    { key:'00100010', tag:'(0010,0010)', vr:'PN', kw:'PatientName', val:'DOE^JANE^Q', len:0, meta:false, pixel:false },
+    { key:'00100020', tag:'(0010,0020)', vr:'LO', kw:'PatientID', val:'MRN998877', len:0, meta:false, pixel:false },
+    { key:'00100030', tag:'(0010,0030)', vr:'DA', kw:'PatientBirthDate', val:'19880312', len:0, meta:false, pixel:false },
+    { key:'00100040', tag:'(0010,0040)', vr:'CS', kw:'PatientSex', val:'F', len:0, meta:false, pixel:false },
+    { key:'00080050', tag:'(0008,0050)', vr:'SH', kw:'AccessionNumber', val:'ACCDEMO42', len:0, meta:false, pixel:false },
+    { key:'00080060', tag:'(0008,0060)', vr:'CS', kw:'Modality', val:'CT', len:0, meta:false, pixel:false },
+    { key:'00080020', tag:'(0008,0020)', vr:'DA', kw:'StudyDate', val:'20240315', len:0, meta:false, pixel:false },
+    { key:'00080030', tag:'(0008,0030)', vr:'TM', kw:'StudyTime', val:'143022', len:0, meta:false, pixel:false },
+    { key:'00081030', tag:'(0008,1030)', vr:'LO', kw:'StudyDescription', val:'CT ABD/PELVIS W CONTRAST', len:0, meta:false, pixel:false },
+    { key:'00080090', tag:'(0008,0090)', vr:'PN', kw:'ReferringPhysicianName', val:'SMITH^ADAM', len:0, meta:false, pixel:false },
+    { key:'00080080', tag:'(0008,0080)', vr:'LO', kw:'InstitutionName', val:'DEMO HOSPITAL', len:0, meta:false, pixel:false },
+    { key:'0020000d', tag:'(0020,000D)', vr:'UI', kw:'StudyInstanceUID', val:'1.2.840.113619.2.55.3.604688119.868.1700000000.1', len:0, meta:false, pixel:false },
+  ];
+  populateOverrides();
+  document.getElementById('ovLocation').value = '3W^312^A';
+  renderTagTable(parsedTags);
+  regenerate();
+  showToast('Sample tags loaded — ORM regenerated from demo values');
 }
 
 function showToast(msg) {

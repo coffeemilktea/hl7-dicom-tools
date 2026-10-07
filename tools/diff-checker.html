@@ -309,7 +309,7 @@
   </div>
   <div class="app-actions">
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button class="btn-theme" id="btn-theme">
+    <button class="btn-theme" id="btn-theme" aria-label="Switch to light mode">
       <span class="theme-icon">☀️</span>
       <span class="theme-label">Light</span>
     </button>
@@ -319,18 +319,19 @@
 <div class="main">
   <div class="input-grid">
     <div class="input-panel">
-      <div class="panel-label"><span class="dot dot-a"></span> Message A</div>
-      <textarea id="msgA" placeholder="MSH|^~\&|SendingApp|SendingFac|RecvApp|RecvFac|..."></textarea>
+      <label class="panel-label" for="msgA"><span class="dot dot-a"></span> Message A</label>
+      <textarea id="msgA" aria-label="HL7 message A" placeholder="MSH|^~\&|SendingApp|SendingFac|RecvApp|RecvFac|..."></textarea>
     </div>
     <div class="input-panel">
-      <div class="panel-label"><span class="dot dot-b"></span> Message B</div>
-      <textarea id="msgB" placeholder="MSH|^~\&|SendingApp|SendingFac|RecvApp|RecvFac|..."></textarea>
+      <label class="panel-label" for="msgB"><span class="dot dot-b"></span> Message B</label>
+      <textarea id="msgB" aria-label="HL7 message B" placeholder="MSH|^~\&|SendingApp|SendingFac|RecvApp|RecvFac|..."></textarea>
     </div>
   </div>
 
   <div class="controls">
     <button class="btn btn-primary" onclick="compare()">Compare</button>
     <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+    <button class="btn btn-secondary" onclick="loadSamplePair()" aria-label="Load a sample message pair">Load Sample</button>
     <div class="divider"></div>
     <label class="toggle">
       <input type="checkbox" id="showSame" onchange="rerender()">
@@ -342,7 +343,8 @@
     </label>
   </div>
 
-  <div id="summary" class="summary" style="display:none"></div>
+  <div id="diff-status" class="error-msg" style="display:none" role="status" aria-live="polite"></div>
+  <div id="summary" class="summary" style="display:none" role="status" aria-live="polite"></div>
   <div id="legend"  class="legend"  style="display:none">
     <span>Legend:</span>
     <span class="legend-item"><span class="legend-dot" style="background:rgba(var(--green-rgb),.4)"></span> Identical</span>
@@ -351,7 +353,7 @@
     <span class="legend-item"><span class="legend-dot" style="background:rgba(var(--accent-rgb),.4)"></span> Segment only in A</span>
     <span class="legend-item"><span class="legend-dot" style="background:rgba(var(--orange-rgb),.4)"></span> Segment only in B</span>
   </div>
-  <div id="results"></div>
+  <div id="results" aria-live="polite"></div>
 </div>
 
 <script>
@@ -788,12 +790,42 @@ function rerender() {
   legend.style.display  = 'flex';
 }
 
+
+function showDiffStatus(msg) {
+  const el = document.getElementById('diff-status');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+function loadSamplePair() {
+  const msgA = [
+    "MSH|^~\\&|HIS|HOSP_A|LAB|HOSP_A|20240301120000||ADT^A01|MSG001|P|2.5",
+    "EVN|A01|20240301120000",
+    "PID|1||MRN111^^^HOSP^MR||DOE^JOHN^A||19800101|M",
+    "PV1|1|I|3N^301^A||||1234^SMITH^JANE^^^DR"
+  ].join("\n");
+  const msgB = [
+    "MSH|^~\\&|HIS|HOSP_A|LAB|HOSP_A|20240301120500||ADT^A01|MSG002|P|2.5",
+    "EVN|A01|20240301120500",
+    "PID|1||MRN111^^^HOSP^MR||DOE^JOHN^A||19800101|M",
+    "PV1|1|I|3N^302^B||||1234^SMITH^JANE^^^DR",
+    "NK1|1|DOE^MARY|SPO"
+  ].join("\n");
+  document.getElementById('msgA').value = msgA;
+  document.getElementById('msgB').value = msgB;
+  showDiffStatus('');
+  compare();
+}
+
 function clearAll() {
   document.getElementById('msgA').value = '';
   document.getElementById('msgB').value = '';
   document.getElementById('results').innerHTML = '';
   document.getElementById('summary').style.display = 'none';
   document.getElementById('legend').style.display  = 'none';
+  showDiffStatus('');
   lastPairs = null;
 }
 

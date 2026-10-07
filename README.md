@@ -4,8 +4,12 @@ Browser-based tools for working with HL7 v2.x and DICOM medical data standards.
 Every HTML tool is single-file and zero-dependency — open it in a browser and go;
 no build step, no server, and no data leaves your browser.
 
-A curated set of these tools is published at **[ocha.dev](https://ocha.dev)**
-("Healthcare Data Tools"), served from [`pages-repo/`](pages-repo/).
+These tools are published under
+**[coffeemilktea.github.io/hl7-dicom-tools](https://coffeemilktea.github.io/hl7-dicom-tools/)**
+and linked from the Healthcare Data Tools landing page at
+**[coffeemilktea.github.io](https://coffeemilktea.github.io/)**.
+The Mirth Transformer Builder lives separately in
+**[HL7-Interface-Javascript-Builder](https://github.com/coffeemilktea/HL7-Interface-Javascript-Builder)**.
 
 ## Tools
 
@@ -62,20 +66,15 @@ A curated set of these tools is published at **[ocha.dev](https://ocha.dev)**
   - Verifying RIS scheduled procedure updates.
   - Training clinical engineers on modality worklist querying.
 
-## Subprojects
-
-- [`mwl-emulator/`](mwl-emulator/) — Python command-line DICOM MWL C-FIND SCU
-  (acts like a modality querying a worklist server), built on pynetdicom.
-  See its own [README](mwl-emulator/README.md).
-- [`pages-repo/`](pages-repo/) — Jekyll source for the ocha.dev GitHub Pages site;
-  published copies of the tools live in `pages-repo/tools/`.
-
 ## Shared theme
 
-[`tools/theme.css`](tools/theme.css) + [`tools/theme.js`](tools/theme.js) provide the shared Monokai
-dark/light theme used by `msgparser.html`, `dicom-generator.html`, and
-`diff-checker.html`. The theme choice persists across tools via the
-localStorage key `hl7-tools-theme`.
+[`tools/theme.css`](tools/theme.css) + [`tools/theme.js`](tools/theme.js) provide the shared
+**Tokyo Night** / Tokyo Night Day theme used by every tool in `tools/`. The theme choice persists
+across tools (and the landing page) via the localStorage key `hl7-tools-theme`. Storage access is
+guarded so hardened browsers that block site data still load on dark.
+
+> Follow-up: wire these pages onto the landing repo's `/assets/tokens.css` + `.site-bar` chrome so
+> both repos share one token source. Until then, keep `theme.css` in step with the landing palette.
 
 ## Development
 

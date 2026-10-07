@@ -786,7 +786,7 @@
   <div class="app-actions">
     <span class="app-hint">Paste an HL7 message to begin</span>
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button class="btn-theme" id="btn-theme">
+    <button class="btn-theme" id="btn-theme" aria-label="Switch to light mode">
       <span class="theme-icon">☀️</span>
       <span class="theme-label">Light</span>
     </button>
@@ -803,7 +803,7 @@
         <div class="sample-split">
           <button class="btn btn-ghost" id="btn-sample">Load Sample</button>
           <div class="select-wrap">
-            <select id="sample-type" title="Sample message type">
+            <select id="sample-type" title="Sample message type" aria-label="Sample message type">
               <option value="ORU">ORU^R01</option>
               <option value="ORM">ORM^O01</option>
               <option value="ADT_A01">ADT^A01</option>
@@ -818,11 +818,13 @@
             </select>
           </div>
         </div>
+        <button class="btn btn-ghost" id="btn-strip-phi" aria-label="Strip common PHI fields from the message">Strip PHI</button>
         <button class="btn btn-danger" id="btn-clear">Clear</button>
       </div>
     </div>
-    <textarea id="hl7-input" spellcheck="false"
+    <textarea id="hl7-input" spellcheck="false" aria-label="HL7 message input"
       placeholder="MSH|^~\&|SENDING|FACILITY|RECEIVING|FACILITY|20240301120000||ADT^A01|12345|P|2.5&#10;EVN|A01|20240301120000&#10;PID|1||MRN12345^^^HOSP^MR||DOE^JOHN^A||19800101|M|||123 MAIN ST^^ANYTOWN^CA^90210^USA||(555)555-1234|(555)555-5678||S||ACC12345|SSN-12345&#10;..."></textarea>
+    <div id="parse-status" role="status" aria-live="polite" style="display:none;font-size:12px;color:var(--yellow);padding:4px 12px;"></div>
     <div class="input-actions">
       <span id="char-count" style="color: var(--muted); font-size: 11px;">0 chars</span>
       <span class="spacer"></span>
@@ -843,7 +845,7 @@
     <div class="tab-content active" id="tab-structured" style="overflow:hidden;">
       <div class="structured-layout">
         <div class="seg-nav" id="seg-nav"></div>
-        <div class="seg-table-wrap" id="output-structured">
+        <div class="seg-table-wrap" id="output-structured" aria-live="polite">
           <div class="empty-state" id="empty-state">
             <div class="icon">⚕</div>
             <p>Paste an HL7 v2.x message in the input panel<br>and click <strong>Parse</strong> to inspect it.</p>
@@ -1611,6 +1613,52 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   lastParsed = null;
   restoreHL7Panels();
 });
+
+
+function showParseStatus(msg) {
+  const el = document.getElementById('parse-status');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+/** Strip common PHI-bearing fields (names, addresses, phones, SSN, account) for safer demos. */
+function stripPHI(raw) {
+  const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const clearFields = {
+    PID: new Set([5, 6, 11, 13, 14, 18, 19, 20]),
+    NK1: new Set([2, 4, 5, 6]),
+    PV1: new Set([7, 8, 9, 17]),
+    IN1: new Set([16, 17, 19]),
+    GT1: new Set([3, 5, 6]),
+  };
+  return lines.map(line => {
+    if (!line || line.length < 3) return line;
+    const seg = line.slice(0, 3);
+    const targets = clearFields[seg];
+    if (!targets) return line;
+    const parts = line.split('|');
+    // MSH uses special indexing; others: parts[0]=seg, parts[n]=field n
+    for (const n of targets) {
+      if (n < parts.length) parts[n] = '';
+    }
+    return parts.join('|');
+  }).join('\n');
+}
+
+const btnStrip = document.getElementById('btn-strip-phi');
+if (btnStrip) {
+  btnStrip.addEventListener('click', () => {
+    const ta = document.getElementById('hl7-input');
+    const before = ta.value;
+    if (!before.trim()) { showParseStatus('Nothing to strip — paste or load a sample first.'); return; }
+    ta.value = stripPHI(before);
+    document.getElementById('char-count').textContent = `${ta.value.length} chars`;
+    showParseStatus('Stripped common PHI fields (names, address, phones, SSN/account). Re-parse to refresh the view.');
+    try { doParse(); } catch (e) {}
+  });
+}
 
 document.getElementById('btn-sample').addEventListener('click', () => {
   const type = document.getElementById('sample-type').value;
