@@ -209,3 +209,35 @@ textarea:focus-visible {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Header on phones: keep everything on-screen ──
+   The title stays on one line (ellipsis), the home link collapses to its
+   arrow (its text is still the accessible name), and tool controls wrap
+   onto their own row instead of running off the right edge. */
+.app-titles { min-width: 0; }
+.app-titles h1 { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 560px) {
+  .app-header { flex-wrap: wrap; row-gap: 8px; }
+  .app-titles { flex: 1 1 0; }
+  .app-actions { margin-left: 0; flex: 1 1 100%; justify-content: flex-start; }
+  .app-actions:has(> .app-home:only-child) { flex: 0 0 auto; margin-left: auto; }
+  .app-home { font-size: 0; gap: 0; padding: 0 10px; }
+  .app-home .app-home-arrow { font-size: 12px; opacity: 1; }
+  .app-badge { display: none; }
+}
+
+/* ── Shared live-region toast (theme.js: window.uxAnnounce) ── */
+.ux-toast {
+  position: fixed; left: 50%; bottom: 20px; z-index: 1000;
+  transform: translate(-50%, 8px); opacity: 0; pointer-events: none;
+  padding: 8px 14px; border-radius: var(--radius-sm, 6px);
+  background: var(--surface2); color: var(--text);
+  border: 1px solid rgba(var(--green-rgb), .45);
+  box-shadow: var(--shadow-1); font: 600 12px/1.3 var(--font-sans);
+  transition: opacity .15s, transform .15s;
+}
+.ux-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.ux-toast.err { border-color: rgba(var(--red-rgb), .5); color: var(--red); }
+
+/* Click-to-open drop zones are keyboard operable (theme.js adds role/tabindex) */
+:where(.drop-zone, .upload-zone, .reader-drop)[tabindex]:focus-visible { border-color: var(--accent); }

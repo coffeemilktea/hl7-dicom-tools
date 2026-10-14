@@ -448,6 +448,17 @@
     .rpanel { width: 340px; min-width: 340px; }
     .sidebar { width: 160px; min-width: 160px; }
   }
+  /* Phones: series list, image, then tags stacked; the page scrolls */
+  @media (max-width: 760px) {
+    html, body { height: auto; }
+    body { overflow: auto; min-height: 100vh; }
+    .main { flex-direction: column; }
+    .sidebar, .rpanel { width: auto; min-width: 0; border-right: none; border-left: none; border-bottom: 1px solid var(--border); }
+    .sidebar { max-height: 30vh; }
+    .rpanel { min-height: 70vh; }
+    .viewport-wrap { min-height: 55vh; }
+    .toolbar { flex-wrap: wrap; }
+  }
 </style>
 </head>
 <body>

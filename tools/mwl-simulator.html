@@ -197,6 +197,17 @@
     .sb-item span { opacity: 0.7; margin-right: 3px; }
     .spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--accent-dim); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+      /* Phones/tablets: stack query, results and protocol log vertically and let the page scroll */
+    @media (max-width: 820px) {
+      body { height: auto; min-height: 100vh; overflow: auto; }
+      .tab-content.active, #tab-cfind { flex-direction: column; overflow: visible; }
+      .query-panel, .log-panel { width: auto; min-width: 0; border-right: none; border-left: none; border-bottom: 1px solid var(--border); }
+      .results-panel { min-height: 50vh; }
+      .log-panel { min-height: 240px; }
+      .ext-bar { flex-wrap: wrap; }
+      .ext-bar input { max-width: 100%; }
+      .ext-warn { margin-left: 0; }
+    }
   </style>
 </head>
 <body>
@@ -209,13 +220,13 @@
   </div>
   <div class="app-actions">
     <div class="ae-row">
-      <label>SCU AE:</label>
+      <label for="scuAE">SCU AE:</label>
       <input id="scuAE" value="MY_MODALITY" maxlength="16">
-      <span class="ae-arrow">→</span>
-      <label>SCP AE:</label>
+      <span class="ae-arrow" aria-hidden="true">→</span>
+      <label for="scpAE">SCP AE:</label>
       <input id="scpAE" value="MWL_SCP" maxlength="16" oninput="buildExtUrl()">
     </div>
-    <div class="mode-toggle">
+    <div class="mode-toggle" role="group" aria-label="Worklist source">
       <button class="mode-btn active-local" id="btn-local" onclick="setMode('local')" aria-label="Simulated worklist mode">◉ SIMULATED</button>
       <button class="mode-btn" id="btn-ext" onclick="setMode('external')" aria-label="External DICOMweb worklist mode">⇌ EXTERNAL</button>
     </div>
