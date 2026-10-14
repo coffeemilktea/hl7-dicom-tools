@@ -155,3 +155,55 @@
   outline: 2px solid var(--accent) !important;
   outline-offset: 2px;
 }
+
+/* ═══ Mobile & touch (shared by every page in both repos) ═══════════════
+   - 16px controls on touch screens, so iOS Safari doesn't zoom on focus
+   - 44px minimum tap targets for controls on coarse pointers (WCAG 2.5.5)
+   - wide tables / pre blocks scroll inside their own box (theme.js wraps
+     bare tables in .tn-scroll), never the whole page
+   - safe-area insets (pages use viewport-fit=cover)
+   - controls that only appear on :hover are always visible on touch
+   ═════════════════════════════════════════════════════════════════════ */
+:where(img, svg, video, canvas, select, textarea, input) { max-width: 100%; }
+:where(pre) { overflow-x: auto; max-width: 100%; }
+.tn-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+body {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+@supports (padding: max(0px)) {
+  .app-header, .site-bar, header.site-header {
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+  }
+}
+
+@media (pointer: coarse) {
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),
+  select, textarea {
+    font-size: max(16px, 1em) !important;
+  }
+  :is(button, select, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),
+      [role=button], [role=tab], summary,
+      .btn, .tbtn, .btn-theme, .app-home, .app-mark, .btn-launch, .tab-btn, .mode-btn):not(.sr-only) {
+    min-height: 44px;
+  }
+  :is(button, [role=button], [role=tab], .btn, .tbtn, .app-home, .app-mark, .tab-btn, .mode-btn):not(.sr-only) {
+    min-width: 44px;
+  }
+  input[type=checkbox], input[type=radio] { width: 22px; height: 22px; }
+  /* hover-revealed controls */
+  .t-edit, .t-del, .r-x, .copy-btn { opacity: 1 !important; }
+}
+
+@media (max-width: 480px) {
+  .app-actions { gap: 6px; }
+  .app-actions > * { flex-shrink: 1; min-width: 0; }
+  .app-hint, .app-badge { display: none; }
+}

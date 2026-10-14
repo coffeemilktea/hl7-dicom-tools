@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>DICOM → HL7 Order Generator</title>
   <link rel="stylesheet" href="theme.css" />
   <script src="theme.js"></script>
@@ -15,7 +15,7 @@
       font-family: var(--font-sans);
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      min-height: 100vh; min-height: 100dvh;
       display: flex;
       flex-direction: column;
     }
@@ -109,7 +109,7 @@
     }
     .panel-body {
       overflow-y: auto;
-      max-height: calc(100vh - 340px);
+      max-height: calc(100vh - 340px); max-height: calc(100dvh - 340px);
       flex: 1;
     }
 
@@ -268,7 +268,7 @@
     .modal-box {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); width: min(820px, 95vw);
-      max-height: 82vh; overflow: hidden;
+      max-height: 82vh; max-height: 82dvh; overflow: hidden;
       display: flex; flex-direction: column;
     }
     .modal-hdr {

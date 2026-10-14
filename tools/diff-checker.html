@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HL7 Diff Checker</title>
   <link rel="stylesheet" href="theme.css" />
   <script src="theme.js"></script>
@@ -24,7 +24,7 @@
       font-family: var(--font-sans);
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
+      min-height: 100vh; min-height: 100dvh;
     }
 
     /* Header comes entirely from theme.css (.app-header / .app-mark / .app-titles) */
@@ -122,6 +122,11 @@
       border-radius: var(--radius);
       margin-bottom: 12px;
       overflow: hidden;
+    }
+    @media (max-width: 600px) {
+      .segment-block { overflow-x: auto; }
+      .segment-block table { min-width: 520px; }
+      .seg-header { position: sticky; left: 0; }
     }
 
     .seg-header {

@@ -74,3 +74,41 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', enhance);
   else enhance();
 })();
+
+/* Mobile: a table wider than its container scrolls inside its own
+   .tn-scroll box instead of widening the whole page. Only tables that
+   actually overflow and have no scrolling ancestor are wrapped; tables
+   rendered later (results, tag lists) are picked up by a MutationObserver. */
+(function () {
+  function scrolls(el) {
+    for (var p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      var o = getComputedStyle(p).overflowX;
+      if (o === 'auto' || o === 'scroll' || o === 'hidden' || o === 'clip') return true;
+    }
+    return false;
+  }
+  function wrapWide() {
+    var vw = document.documentElement.clientWidth;
+    document.querySelectorAll('table').forEach(function (t) {
+      if (t.parentElement && t.parentElement.classList.contains('tn-scroll')) return;
+      var r = t.getBoundingClientRect();
+      if (r.width === 0 || r.right <= vw + 1 || scrolls(t)) return;
+      var w = document.createElement('div');
+      w.className = 'tn-scroll';
+      t.parentNode.insertBefore(w, t);
+      w.appendChild(t);
+    });
+  }
+  var pending = false;
+  function schedule() {
+    if (pending) return; pending = true;
+    requestAnimationFrame(function () { pending = false; wrapWide(); });
+  }
+  function start() {
+    wrapWide();
+    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', schedule);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();

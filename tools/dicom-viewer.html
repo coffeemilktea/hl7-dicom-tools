@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>DICOM Viewer &amp; Tag Morph</title>
 <link rel="stylesheet" href="theme.css" />
 <script src="theme.js"></script>
@@ -392,7 +392,7 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     width: min(760px, 92vw);
-    max-height: 84vh;
+    max-height: 84vh; max-height: 84dvh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 12px 40px rgba(0,0,0,0.5);
@@ -451,12 +451,12 @@
   /* Phones: series list, image, then tags stacked; the page scrolls */
   @media (max-width: 760px) {
     html, body { height: auto; }
-    body { overflow: auto; min-height: 100vh; }
+    body { overflow: auto; min-height: 100vh; min-height: 100dvh; }
     .main { flex-direction: column; }
     .sidebar, .rpanel { width: auto; min-width: 0; border-right: none; border-left: none; border-bottom: 1px solid var(--border); }
-    .sidebar { max-height: 30vh; }
-    .rpanel { min-height: 70vh; }
-    .viewport-wrap { min-height: 55vh; }
+    .sidebar { max-height: 30vh; max-height: 30dvh; }
+    .rpanel { min-height: 70vh; min-height: 70dvh; }
+    .viewport-wrap { min-height: 55vh; min-height: 55dvh; }
     .toolbar { flex-wrap: wrap; }
   }
 </style>
