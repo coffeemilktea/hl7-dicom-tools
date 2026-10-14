@@ -1368,6 +1368,9 @@ function loadSampleTags() {
     { key:'00080080', tag:'(0008,0080)', vr:'LO', kw:'InstitutionName', val:'DEMO HOSPITAL', len:0, meta:false, pixel:false },
     { key:'0020000d', tag:'(0020,000D)', vr:'UI', kw:'StudyInstanceUID', val:'1.2.840.113619.2.55.3.604688119.868.1700000000.1', len:0, meta:false, pixel:false },
   ];
+  // Show the ORM and mapping panels, as loading a real file does
+  document.getElementById('splitView').style.display = 'grid';
+  document.getElementById('mapPanel').style.display  = 'block';
   populateOverrides();
   document.getElementById('ovLocation').value = '3W^312^A';
   renderTagTable(parsedTags);
