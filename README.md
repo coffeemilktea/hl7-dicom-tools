@@ -1,92 +1,54 @@
-# HL7 / DICOM Tools Workspace
+# HL7 / DICOM Tools
 
-Browser-based tools for working with HL7 v2.5.1 and DICOM medical data standards.
-Every HTML tool is single-file and zero-dependency — open it in a browser and go;
-no build step, no server, and no data leaves your browser.
+Single-file browser tools for HL7 v2.5.1 and DICOM: parse, diff, generate, view and simulate, with no install and no server.
 
-These tools are published under
-**[coffeemilktea.github.io/hl7-dicom-tools](https://coffeemilktea.github.io/hl7-dicom-tools/)**
-and linked from the Healthcare Data Tools landing page at
-**[coffeemilktea.github.io](https://coffeemilktea.github.io/)**.
-The Mirth Transformer Builder lives separately in
-**[HL7-Interface-Javascript-Builder](https://github.com/coffeemilktea/HL7-Interface-Javascript-Builder)**.
+**Live:** [coffeemilktea.github.io/hl7-dicom-tools](https://coffeemilktea.github.io/hl7-dicom-tools/) · Landing page: [coffeemilktea.github.io](https://coffeemilktea.github.io/)
 
 ## Tools
 
-| File | Title | What it does | Preview |
-|------|-------|--------------|---------|
-| [`tools/msgparser.html`](tools/msgparser.html) | HL7 v2 Parser | Decode raw HL7 v2.5.1 messages into segment, field, and component hierarchies. | <details><summary>View</summary>![HL7 v2 Parser](screenshots/msgparser.png)</details> |
-| [`tools/diff-checker.html`](tools/diff-checker.html) | HL7 Diff Checker | Compare two HL7 messages side-by-side with segment-level and field-level diff highlighting. | <details><summary>View</summary>![HL7 Diff Checker](screenshots/hl7-diff.png)</details> |
-| [`tools/dicom-generator.html`](tools/dicom-generator.html) | DICOM Toolbox | Create and generate valid Explicit VR Little Endian DICOM files from scratch with custom tag injection. | <details><summary>View</summary>![DICOM Toolbox](screenshots/dicom-generator.png)</details> |
-| [`tools/dicom-viewer.html`](tools/dicom-viewer.html) | Generic DICOM Viewer | Render DICOM image series locally, view tags, perform window/level, and morph tag values. | <details><summary>View</summary>![Generic DICOM Viewer](screenshots/dicom-viewer.png)</details> |
-| [`tools/dicom-hl7-order.html`](tools/dicom-hl7-order.html) | DICOM → HL7 Order Generator | Extract attributes from a DICOM file to generate a standard HL7 ORM^O01 radiology order. | <details><summary>View</summary>![DICOM -> HL7 Order Generator](screenshots/dicom-hl7-order.png)</details> |
-| [`tools/mwl-simulator.html`](tools/mwl-simulator.html) | DICOM MWL Simulator | Simulate a DICOM Modality Worklist (C-FIND SCU) querying a worklist SCP with mock data. | <details><summary>View</summary>![DICOM MWL Simulator](screenshots/mwl-simulator.png)</details> |
+| Tool | Desktop | Mobile |
+|---|---|---|
+| **[HL7 Parser](https://coffeemilktea.github.io/hl7-dicom-tools/tools/msgparser.html)**: breaks an HL7 v2.5.1 message into segments, fields and components, with structured, highlighted and JSON views. Also reads FHIR R4 JSON/XML. · [`tools/msgparser.html`](tools/msgparser.html) | <img src="docs/screenshots/msgparser-desktop.webp" width="420" alt="HL7 Parser, desktop"> | <img src="docs/screenshots/msgparser-mobile.webp" width="150" alt="HL7 Parser, mobile"> |
+| **[HL7 Diff Checker](https://coffeemilktea.github.io/hl7-dicom-tools/tools/diff-checker.html)**: compares two HL7 v2.5.1 messages side by side, segment by segment and field by field. · [`tools/diff-checker.html`](tools/diff-checker.html) | <img src="docs/screenshots/diff-checker-desktop.webp" width="420" alt="HL7 Diff Checker, desktop"> | <img src="docs/screenshots/diff-checker-mobile.webp" width="150" alt="HL7 Diff Checker, mobile"> |
+| **[DICOM → HL7 Order](https://coffeemilktea.github.io/hl7-dicom-tools/tools/dicom-hl7-order.html)**: reads DICOM tags and generates an HL7 v2.5.1 ORM^O01 radiology order, with editable overrides and a tag-to-field mapping table. · [`tools/dicom-hl7-order.html`](tools/dicom-hl7-order.html) | <img src="docs/screenshots/dicom-hl7-order-desktop.webp" width="420" alt="DICOM to HL7 Order, desktop"> | <img src="docs/screenshots/dicom-hl7-order-mobile.webp" width="150" alt="DICOM to HL7 Order, mobile"> |
+| **[DICOM Toolbox](https://coffeemilktea.github.io/hl7-dicom-tools/tools/dicom-generator.html)**: generates DICOM files from form fields and custom tags (optionally from an uploaded image), and reads them back in a tag browser. · [`tools/dicom-generator.html`](tools/dicom-generator.html) | <img src="docs/screenshots/dicom-generator-desktop.webp" width="420" alt="DICOM Toolbox, desktop"> | <img src="docs/screenshots/dicom-generator-mobile.webp" width="150" alt="DICOM Toolbox, mobile"> |
+| **[DICOM Viewer & Tag Morph](https://coffeemilktea.github.io/hl7-dicom-tools/tools/dicom-viewer.html)**: opens DICOM files and folders, shows images with window/level, pan, zoom and measurement, and edits tags before re-export. · [`tools/dicom-viewer.html`](tools/dicom-viewer.html) | <img src="docs/screenshots/dicom-viewer-desktop.webp" width="420" alt="DICOM Viewer, desktop"> | <img src="docs/screenshots/dicom-viewer-mobile.webp" width="150" alt="DICOM Viewer, mobile"> |
+| **[DICOM MWL Simulator](https://coffeemilktea.github.io/hl7-dicom-tools/tools/mwl-simulator.html)**: runs Modality Worklist C-FIND queries against a simulated worklist, or against a DICOMweb (QIDO-RS) server you configure, and shows the protocol log. · [`tools/mwl-simulator.html`](tools/mwl-simulator.html) | <img src="docs/screenshots/mwl-simulator-desktop.webp" width="420" alt="MWL Simulator, desktop"> | <img src="docs/screenshots/mwl-simulator-mobile.webp" width="150" alt="MWL Simulator, mobile"> |
 
-### Detailed Tool Overview & Use Cases
+The Mirth Transformer Builder lives in a separate repo: [HL7-Interface-Javascript-Builder](https://github.com/coffeemilktea/HL7-Interface-Javascript-Builder).
 
-#### 🔍 HL7 v2 Parser ([`tools/msgparser.html`](tools/msgparser.html))
-- **Description:** A utility that decodes raw HL7 v2.5.1 messages and outputs a fully styled tree view showing segment/field details. Hovering over a segment or field breaks down component and subcomponent indexes.
-- **Key Use Cases:**
-  - Troubleshooting HL7 interface integration or engine issues by verifying segment structure.
-  - Decoding complex clinical messages to verify patient demographics (PID), physician info, or lab results.
-  - Learning the structure of HL7 segments (MSH, PID, PV1, ORC, OBR, OBX).
+## Features
 
-#### ⚖️ HL7 Diff Checker ([`tools/diff-checker.html`](tools/diff-checker.html))
-- **Description:** A side-by-side diff checker tailored for HL7 messages. It highlights line modifications, insertions, and deletions, and synchronizes scrolling.
-- **Key Use Cases:**
-  - Comparing an inbound raw message with the output of a transformation engine to test mapping rules.
-  - Identifying differences between patient messages from different source systems.
-  - Quick validation of test message updates.
+- Each tool is a single HTML file with no build step and no third-party libraries.
+- Sample data is built in: every tool has a sample or demo button, so you can try it without real data.
+- HL7 handling: escape sequences (`\F\ \S\ \T\ \R\ \E\ \Xhh\ \.br\`) are decoded when parsing and applied when generating. Generated messages use CR (`\r`) as the segment terminator.
+- DICOM text is decoded using the file's Specific Character Set (0008,0005) in the order tool and the Toolbox reader.
+- Dark Tokyo Night theme shared by every tool (`tools/tokyo-night.css`, byte-identical to the landing site's copy).
+- Mobile-friendly: 16px inputs on touch screens, 44px tap targets, wide tables scroll inside their own box, and safe-area insets are respected.
 
-#### 📦 DICOM Toolbox (Generator) ([`tools/dicom-generator.html`](tools/dicom-generator.html))
-- **Description:** Generates valid Explicit VR Little Endian secondary capture DICOM files (.dcm) from user-specified header attributes. Supports custom pixel data (image upload) or generates standard synthetic blocks.
-- **Key Use Cases:**
-  - Building synthetic DICOM file sets to test PACS, VNA, or modality query systems.
-  - Exploring and understanding mandatory DICOM metadata and UIDs.
-  - Crafting custom tag payloads to test database parsing and edge cases.
+## HL7 standard: v2.5.1
 
-#### 👁️ Generic DICOM Viewer ([`tools/dicom-viewer.html`](tools/dicom-viewer.html))
-- **Description:** A zero-dependency client-side viewer that loads DICOM files, parses tags, and renders images in a canvas with window/level adjustment controls. Also features cine loop playback and measurement annotations.
-- **Key Use Cases:**
-  - Quick, zero-install inspection of DICOM image headers and metadata tags.
-  - Anonymization of clinical metadata by morphing specific patient/study tags.
-  - Reviewing files on machines without dedicated diagnostic PACS workstations.
+All generated messages and samples use **HL7 v2.5.1**:
+- MSH-12 = `2.5.1`, and MSH-9 includes the message structure (for example `ORM^O01^ORM_O01`).
+- Field definitions follow v2.5.1; MSH ends at MSH-21.
+- The parser flags any message whose MSH-12 isn't 2.5.1.
 
-#### 🔄 DICOM → HL7 Order Generator ([`tools/dicom-hl7-order.html`](tools/dicom-hl7-order.html))
-- **Description:** Parses tags from an uploaded DICOM file (e.g. Patient ID, Accession Number, Modality) and maps them directly to generate a matching HL7 ORM^O01 radiology order message.
-- **Key Use Cases:**
-  - Simulating clinical workflow orders directly from imaging assets.
-  - Testing RIS/PACS data consistency and message translations.
-  - Bridging workflows where EMR orders need to be backfilled from archived studies.
+## Privacy
 
-#### 📡 DICOM MWL Simulator ([`tools/mwl-simulator.html`](tools/mwl-simulator.html))
-- **Description:** Simulates a modality worklist (MWL) search. Allows querying simulated worklists with key search filters (Date, Patient Name, Modality) to see what scheduled work items are returned.
-- **Key Use Cases:**
-  - Testing C-FIND SCU/SCP interactions and query filter compliance.
-  - Verifying RIS scheduled procedure updates.
-  - Training clinical engineers on modality worklist querying.
+Files and messages are parsed in your browser and are not uploaded anywhere. The one exception is the MWL Simulator's **External** mode, which sends QIDO-RS queries to the DICOMweb URL you enter. Simulated mode makes no network requests.
 
-## Shared theme
+## Local development
 
-[`tools/tokyo-night.css`](tools/tokyo-night.css) is the one shared **Tokyo Night** (night, dark
-only) stylesheet: palette as CSS variables plus base inputs, tables, code blocks, drop zones and the
-focus ring. It is byte-identical to `assets/tokyo-night.css` in `coffeemilktea.github.io`, so the
-tools and the landing page share one token source. [`tools/theme.css`](tools/theme.css) imports it
-and adds the tool chrome (header, buttons, badges). [`tools/theme.js`](tools/theme.js) only clears a
-light-mode choice saved by older versions. All HL7 output and samples use **HL7 v2.5.1**.
+```bash
+git clone https://github.com/coffeemilktea/hl7-dicom-tools.git
+cd hl7-dicom-tools
+python3 -m http.server 8000   # then open http://localhost:8000/tools/msgparser.html
+```
 
-## Development
+Any static file server works, and so does opening a tool directly as a file. The landing page (`index.md`, `_layouts/default.html`) is built by GitHub Pages with Jekyll (`jekyll-seo-tag`).
 
-Dev server configs live in `.claude/launch.json` (`npx serve` on port 3000,
-`python3 -m http.server` on 8080, plus configs for related projects below).
-The tools also work opened directly as `file://`.
+## Tech
 
-## Related projects (outside this folder)
-
-- **HL7 parser with mapping file** — `/Users/meiosis/hl7-parser/`
-  ([github.com/coffeemilktea/hl7-parser](https://github.com/coffeemilktea/hl7-parser)):
-  ADT/ORM/ORU parser driven by an editable `mappings.json` for custom field
-  labels, value translations, and message rewrites.
-
-> Note: this folder lives in OneDrive for sync; standalone projects with git
-> repos are kept outside it (OneDrive and git histories don't mix well).
+- Plain HTML, CSS and JavaScript (ES2015+); no frameworks and no dependencies.
+- `tools/tokyo-night.css`: palette tokens and base components. `tools/theme.css`: the tool header and buttons. `tools/theme.js`: shared helpers (toast and live region, keyboard support for drop zones and tabs, scroll wrappers for wide tables).
+- Published with GitHub Pages from `main`.
