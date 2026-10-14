@@ -1,0 +1,157 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   tokyo-night.css — the ONE shared Tokyo Night (night) stylesheet.
+   An identical copy lives in coffeemilktea.github.io (assets/) and in
+   hl7-dicom-tools (tools/). Keep the two byte-identical.
+
+   Dark mode only. Official Tokyo Night palette, exposed as CSS variables,
+   plus the aliases each repo's pages already use. Every text token clears
+   WCAG AA (4.5:1) on --bg, --bg-dark and --bg-highlight. --comment
+   (#565f89) is ~3:1, so it is for borders/decoration only — never text;
+   secondary text uses --muted (#9aa5ce).
+
+   Component base styles are wrapped in :where() (zero specificity), so a
+   tool's own rules still win; they only fill in what a tool leaves unset.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: dark;
+
+  /* ── Official palette ── */
+  --tn-bg:             #1a1b26;
+  --tn-bg-dark:        #16161e;
+  --tn-bg-highlight:   #292e42;
+  --tn-terminal-black: #414868;
+  --tn-fg:             #c0caf5;
+  --tn-fg-dark:        #a9b1d6;
+  --tn-comment:        #565f89;
+  --tn-blue:           #7aa2f7;
+  --tn-cyan:           #7dcfff;
+  --tn-magenta:        #bb9af7;
+  --tn-green:          #9ece6a;
+  --tn-orange:         #ff9e64;
+  --tn-yellow:         #e0af68;
+  --tn-red:            #f7768e;
+
+  /* ── Semantic tokens (used by every page in both repos) ── */
+  --bg:          var(--tn-bg);
+  --bg-dark:     var(--tn-bg-dark);
+  --bg-highlight:var(--tn-bg-highlight);
+  --surface:     var(--tn-bg-dark);
+  --surface2:    var(--tn-bg-highlight);
+  --sink:        #13131a;
+  --input-bg:    #13131a;
+  --border:      var(--tn-terminal-black);
+  --border-soft: #232433;
+
+  --text:    var(--tn-fg);
+  --fg:      var(--tn-fg);
+  --body:    var(--tn-fg-dark);
+  --fg-dark: var(--tn-fg-dark);
+  --muted:   #9aa5ce;            /* AA on every surface */
+  --comment: var(--tn-comment);  /* decoration only */
+
+  --accent:  var(--tn-blue);
+  --blue:    var(--tn-blue);
+  --accent2: var(--tn-magenta);
+  --magenta: var(--tn-magenta);
+  --purple:  var(--tn-magenta);
+  --cyan:    var(--tn-cyan);
+  --green:   var(--tn-green);
+  --yellow:  var(--tn-yellow);
+  --orange:  var(--tn-orange);
+  --red:     var(--tn-red);
+  --pink:    var(--tn-red);
+  --on-accent: var(--tn-bg);
+
+  /* Channel triplets for rgba() tints */
+  --bg-rgb:        26, 27, 38;
+  --surface2-rgb:  41, 46, 66;
+  --border-rgb:    65, 72,104;
+  --accent-rgb:   122,162,247;
+  --accent2-rgb:  187,154,247;
+  --purple-rgb:   187,154,247;
+  --cyan-rgb:     125,207,255;
+  --green-rgb:    158,206,106;
+  --yellow-rgb:   224,175,104;
+  --orange-rgb:   255,158,100;
+  --red-rgb:      247,118,142;
+  --text-rgb:     192,202,245;
+  --muted-rgb:    154,165,206;
+
+  /* Washes */
+  --accent-bg:   rgba(var(--accent-rgb), .12);
+  --accent-line: rgba(var(--accent-rgb), .38);
+  --green-bg:    rgba(var(--green-rgb), .12);
+  --green-line:  rgba(var(--green-rgb), .38);
+  --yellow-bg:   rgba(var(--yellow-rgb), .12);
+  --yellow-line: rgba(var(--yellow-rgb), .38);
+  --cyan-bg:     rgba(var(--cyan-rgb), .12);
+  --cyan-line:   rgba(var(--cyan-rgb), .38);
+  --red-bg:      rgba(var(--red-rgb), .12);
+  --red-line:    rgba(var(--red-rgb), .38);
+
+  /* Type, shape, elevation */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace,
+               SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --shadow-1:  0 1px 2px rgba(0,0,0,.35);
+  --shadow-2:  0 8px 24px -8px rgba(0,0,0,.55);
+  --header-bg: rgba(22, 22, 30, .86);
+}
+
+/* ═══ Base components (zero specificity — tools may override) ═══ */
+:where(body) { background: var(--bg); color: var(--body); }  /* html stays unset so body's background propagates to the canvas */
+:where(a) { color: var(--accent); }
+:where(a:hover) { color: var(--cyan); }
+
+:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select, textarea) {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+:where(input, select, textarea):focus { border-color: var(--accent); }
+::placeholder { color: var(--muted); opacity: .8; }
+:where(input[type=checkbox], input[type=radio], input[type=range]) { accent-color: var(--accent); }
+
+:where(table) { border-collapse: collapse; color: var(--body); }
+:where(th) { background: var(--surface2); color: var(--text); text-align: left; }
+:where(th, td) { border-bottom: 1px solid var(--border-soft); }
+
+:where(code, kbd, samp, pre) { font-family: var(--font-mono); }
+:where(code, kbd) { background: var(--surface2); color: var(--cyan); border-radius: 4px; padding: 0 .3em; }
+:where(pre) { background: var(--sink); color: var(--text); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); }
+:where(pre code) { background: none; padding: 0; color: inherit; }
+
+/* Drop zones: any element with one of the tools' drop-zone classes */
+:where(.drop-zone, .upload-zone, .reader-drop-zone, .dropzone) {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--muted);
+}
+:where(.drop-zone, .upload-zone, .reader-drop-zone, .dropzone):is(.drag-over, .dragover, .over, :hover) {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), .06);
+}
+
+/* Focus ring — plain specificity on purpose so it can't be lost */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: var(--accent); color: var(--on-accent); }
+
+/* Scrollbars */
+* { scrollbar-color: var(--border) transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* Visible keyboard focus on every control, even where a tool sets
+   `outline: none` on :focus (WCAG 2.4.7 / 1.4.11). */
+:is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+}

@@ -49,7 +49,6 @@
   }
   .tbtn:hover { border-color: var(--accent); }
   .tbtn.active { border-color: var(--accent); color: var(--accent); background: rgba(var(--accent-rgb),0.08); }
-  [data-theme="light"] .tbtn.active { background: rgba(var(--accent-rgb),0.08); }
   .tbtn:disabled { opacity: .4; cursor: default; }
   .tbtn:disabled:hover { border-color: var(--border); }
   .toolbar select, .toolbar input[type="number"] {
@@ -257,7 +256,6 @@
   table.tagtbl { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
   table.tagtbl td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-all; }
   table.tagtbl tr:hover td { background: rgba(var(--text-rgb),0.03); }
-  [data-theme="light"] table.tagtbl tr:hover td { background: rgba(0,0,0,0.03); }
   .t-tag { color: var(--accent); white-space: nowrap; }
   .t-vr { color: var(--red); }
   .t-name { color: var(--muted); font-family: var(--font-sans); font-size: 10.5px; }
@@ -462,7 +460,6 @@
   </div>
   <div class="app-actions">
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button id="btn-theme" class="btn-theme" aria-label="Switch to light mode"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
   </div>
 </header>
 
@@ -2457,6 +2454,7 @@ async function loadFiles(fileList){
   let added = 0;
   for (const file of fileList){
     try {
+      if (file.size > 512 * 1024 * 1024) throw new Error(`${(file.size/1e6).toFixed(0)} MB exceeds the 512 MB limit`);
       const buf = await file.arrayBuffer();
       const parsed = await parseDicomFile(buf, file.name);
       if (!parsed.ds.size) throw new Error('empty dataset');

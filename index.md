@@ -4,7 +4,7 @@ layout: default
 
 <section class="intro">
   <p>
-    Six single-page utilities for working with <strong>HL7 v2.x</strong> and <strong>DICOM</strong> —
+    Six single-page utilities for working with <strong>HL7 v2.5.1</strong> and <strong>DICOM</strong> —
     parsing messages, inspecting and editing imaging metadata, generating test data, and simulating
     modality worklists. No installs, no accounts, and nothing ever leaves your machine.
   </p>
@@ -32,9 +32,9 @@ layout: default
 
     <li class="tool-card">
       <div class="tool-card-icon">🧬</div>
-      <h3>HL7 v2.x Parser</h3>
+      <h3>HL7 v2.5.1 Parser</h3>
       <span class="tool-subtitle">Clinical Messaging</span>
-      <p>Parse HL7 v2.x messages into a structured breakdown of segments, fields, components, and subcomponents — with highlighted and JSON views, plus FHIR resource support.</p>
+      <p>Parse HL7 v2.5.1 messages into a structured breakdown of segments, fields, components, and subcomponents — with highlighted and JSON views, plus FHIR resource support.</p>
       <a href="{{ '/tools/msgparser.html' | relative_url }}" class="btn-launch">Launch &rarr;</a>
     </li>
 

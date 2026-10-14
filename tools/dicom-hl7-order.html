@@ -8,29 +8,6 @@
   <script src="theme.js"></script>
   <style>
     /* ── Light mode ── */
-    [data-theme="light"] input, [data-theme="light"] select, [data-theme="light"] textarea {
-      background: var(--input-bg); color: var(--text); border-color: var(--border);
-    }
-    [data-theme="light"] input:focus, [data-theme="light"] select:focus {
-      border-color: var(--purple); box-shadow: 0 0 0 3px rgba(var(--accent2-rgb),0.1);
-    }
-    [data-theme="light"] .panel-title { color: var(--purple); }
-    [data-theme="light"] .tag-table tr:hover td { background: rgba(0,0,0,0.02); }
-    [data-theme="light"] .tag-table th { background: var(--surface2); }
-    [data-theme="light"] .seg-MSH .seg-label { background: rgba(var(--accent-rgb),0.08); }
-    [data-theme="light"] .seg-PID .seg-label { background: rgba(var(--green-rgb),0.08); }
-    [data-theme="light"] .seg-PV1 .seg-label { background: rgba(var(--orange-rgb),0.08); }
-    [data-theme="light"] .seg-ORC .seg-label { background: rgba(var(--red-rgb),0.08); }
-    [data-theme="light"] .seg-OBR .seg-label { background: rgba(var(--accent2-rgb),0.08); }
-    [data-theme="light"] .seg-ZDS .seg-label { background: rgba(var(--accent-rgb),0.06); }
-    [data-theme="light"] .seg-line:hover { background: rgba(0,0,0,0.02); }
-    [data-theme="light"] .field-row > div { border-color: var(--border); }
-    [data-theme="light"] .badge-mapped { background: rgba(var(--red-rgb),0.1); color: var(--red); border-color: rgba(var(--red-rgb),0.3); }
-    [data-theme="light"] .upload-zone { background: var(--surface); }
-    [data-theme="light"] .upload-zone.drag-over { background: rgba(var(--accent-rgb),0.04); }
-    [data-theme="light"] .config-bar { background: var(--surface); }
-    [data-theme="light"] .map-row:nth-child(even) { background: rgba(0,0,0,0.015); }
-    [data-theme="light"] .fields-bar { background: var(--surface); }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -382,10 +359,6 @@
   </div>
   <div class="app-actions">
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button class="btn-theme" id="btn-theme" aria-label="Switch to light mode">
-      <span class="theme-icon">☀️</span>
-      <span class="theme-label">Light</span>
-    </button>
   </div>
 </header>
 
@@ -436,11 +409,7 @@
     <div class="config-field">
       <span class="config-label">HL7 Version</span>
       <select class="config-input" id="cfgVersion">
-        <option value="2.5" selected>2.5</option>
-        <option value="2.4">2.4</option>
-        <option value="2.3.1">2.3.1</option>
-        <option value="2.6">2.6</option>
-        <option value="2.7">2.7</option>
+        <option value="2.5.1" selected>2.5.1</option>
       </select>
     </div>
   </div>
@@ -716,7 +685,7 @@ const MAPPING = [
   { tag:'00080090', seg:'OBR', field:16, desc:'Ordering Provider',              xform:'name'     },
   { tag:'00080080', seg:'MSH', field:4,  desc:'Sending Facility'                                 },
   { tag:'00081010', seg:'OBR', field:21, desc:'Filler Field 2 (Station Name)'                    },
-  { tag:'00180015', seg:'OBR', field:15, desc:'Specimen Source (Body Part)'                      },
+  { tag:'00180015', seg:'OBR', field:46, desc:'Placer Suppl. Service Info (Body Part)'           },
   { tag:'0020000d', seg:'ZDS', field:1,  desc:'Study Instance UID'                               },
   { tag:'00200010', seg:'OBR', field:20, desc:'Filler Field 1 Study ID'                          },
   { tag:'00081050', seg:'OBR', field:34, desc:'Technician (Performing Phys)',   xform:'name'     },
@@ -760,10 +729,19 @@ function parseDICOM(buf) {
   const LONG_VRS = new Set(['OB','OD','OF','OL','OV','OW','SQ','UC','UN','UR','UT']);
   const STR_VRS  = new Set(['AE','AS','CS','DA','DS','DT','IS','LO','LT','PN','SH','ST','TM','UC','UI','UR','UT']);
 
+  // Specific Character Set (0008,0005) → TextDecoder label. Default repertoire
+  // is ASCII, decoded as latin1 (a superset). Only text VRs use the charset.
+  let textDecoder = new TextDecoder('latin1');
+  const TEXT_VRS = new Set(['LO','LT','PN','SH','ST','UC','UT']);
+  let curVR = '';
   function readStr(off, len) {
-    if (len <= 0 || off + len > bytes.length) return '';
-    let s = '';
-    for (let i = 0; i < Math.min(len, 4096); i++) s += String.fromCharCode(bytes[off + i]);
+    if (len <= 0) return '';
+    if (off + len > bytes.length) len = bytes.length - off;   // truncated element: show what is there
+    if (len <= 0) return '';
+    const slice = bytes.subarray(off, off + Math.min(len, 4096));
+    let s;
+    if (TEXT_VRS.has(curVR)) { try { s = textDecoder.decode(slice); } catch (_) { s = new TextDecoder('latin1').decode(slice); } }
+    else { s = ''; for (let i = 0; i < slice.length; i++) s += String.fromCharCode(slice[i]); }
     return s.replace(/\x00/g,'').trim();
   }
 
@@ -802,7 +780,7 @@ function parseDICOM(buf) {
     const { vr, dOff, len } = item;
     if (len === 0 || len === 0xFFFFFFFF) return '';
     if (vr === 'SQ') return '[Sequence]';
-    if (STR_VRS.has(vr)) return readStr(dOff, len);
+    if (STR_VRS.has(vr)) { curVR = vr; const r = readStr(dOff, len); curVR = ''; return r; }
     if (vr === 'US') {
       const vals = []; for (let i=0;i+1<len&&i<20;i+=2) vals.push(u16(dOff+i)); return vals.join('\\');
     }
@@ -859,6 +837,10 @@ function parseDICOM(buf) {
 
     tags.push({ tag:tagStr(it.g,it.e), key:k, vr:it.vr, kw:d.kw||'', val, len:it.len, meta:false, pixel:isPx });
     count++;
+    if (k === '00080005') {
+      const label = dicomCharsetLabel(val);
+      if (label) { try { textDecoder = new TextDecoder(label); } catch (_) { /* unsupported in this browser: keep latin1 */ } }
+    }
 
     // Skip sequences — defined length jumps directly; undefined length scans for FFFE,E0DD
     if (it.vr === 'SQ' || it.len === 0xFFFFFFFF) {
@@ -877,6 +859,7 @@ function parseDICOM(buf) {
     if (it.next <= cur) { cur += 4; break; }
     cur = it.next;
   }
+  if (count >= MAX) tags.truncated = true;
 
   return tags;
 }
@@ -884,6 +867,35 @@ function parseDICOM(buf) {
 /* ════════════════════════════════════════════════════
    HL7 HELPERS
    ════════════════════════════════════════════════════ */
+const HL7_VERSION = '2.5.1';
+
+// Escape a value for an HL7 v2.5.1 field (default encoding characters ^~\&).
+// Escape character first, then the delimiters; line breaks become \.br\.
+function hl7Esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/\\/g, '\\E\\').replace(/\|/g, '\\F\\').replace(/\^/g, '\\S\\')
+    .replace(/&/g, '\\T\\').replace(/~/g, '\\R\\').replace(/\r\n|\r|\n/g, '\\.br\\');
+}
+
+// DICOM Specific Character Set (0008,0005) → TextDecoder label.
+// Multi-valued (ISO 2022 code extensions) uses the last listed set as an approximation.
+function dicomCharsetLabel(term) {
+  const terms = String(term || '').split('\\').map(t => t.trim()).filter(Boolean);
+  const t = terms[terms.length - 1] || '';
+  const MAP = {
+    'ISO_IR 6':'latin1', 'ISO 2022 IR 6':'latin1',
+    'ISO_IR 100':'latin1', 'ISO 2022 IR 100':'latin1',
+    'ISO_IR 101':'iso-8859-2', 'ISO_IR 109':'iso-8859-3', 'ISO_IR 110':'iso-8859-4',
+    'ISO_IR 144':'iso-8859-5', 'ISO_IR 127':'iso-8859-6', 'ISO_IR 126':'iso-8859-7',
+    'ISO_IR 138':'iso-8859-8', 'ISO_IR 148':'iso-8859-9', 'ISO_IR 166':'tis-620',
+    'ISO_IR 13':'shift_jis', 'ISO 2022 IR 13':'shift_jis',
+    'ISO 2022 IR 87':'iso-2022-jp', 'ISO 2022 IR 159':'iso-2022-jp',
+    'ISO 2022 IR 149':'euc-kr', 'ISO 2022 IR 58':'gb2312',
+    'ISO_IR 192':'utf-8', 'GB18030':'gb18030', 'GBK':'gbk'
+  };
+  return MAP[t] || null;
+}
+
 function pad2(n)    { return String(n).padStart(2,'0'); }
 function nowHL7()   { const d=new Date(); return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`; }
 function uid36()    { return 'MSG'+Date.now().toString(36).toUpperCase(); }
@@ -894,8 +906,8 @@ function uid36ord() { return 'ORD'+Date.now().toString(36).toUpperCase(); }
 // HL7 order:   FamilyName^Given^Middle^Suffix^Prefix
 function xformName(v) {
   if (!v) return '';
-  const p = v.split('^');
-  return [p[0]||'',p[1]||'',p[2]||'',p[4]||'',p[3]||''].join('^').replace(/\^+$/,'');
+  const p = v.split('=')[0].split('^');            // alphabetic component group only
+  return [p[0]||'',p[1]||'',p[2]||'',p[4]||'',p[3]||''].map(hl7Esc).join('^').replace(/\^+$/,'');
 }
 
 function xformDate(v)     { return (v||'').replace(/\D/g,'').substring(0,8); }
@@ -919,42 +931,49 @@ function applyXform(val, xform, tag) {
    ORM GENERATOR
    ════════════════════════════════════════════════════ */
 function generateORM() {
-  const sendApp  = v('cfgSendApp')  || 'DICOM_READER';
-  const sendFac  = v('cfgSendFac')  || 'RADIOLOGY';
-  const recvApp  = v('cfgRecvApp')  || 'RIS';
-  const recvFac  = v('cfgRecvFac')  || 'HOSPITAL';
-  const ctrl     = v('cfgOrderCtrl')|| 'NW';
-  const patCls   = v('cfgPatClass') || 'O';
-  const dfltProv = v('cfgProvider') || '';
-  const ver      = v('cfgVersion')  || '2.5';
+  const sendApp  = hl7Esc(v('cfgSendApp')  || 'DICOM_READER');
+  const sendFac  = hl7Esc(v('cfgSendFac')  || 'RADIOLOGY');
+  const recvApp  = hl7Esc(v('cfgRecvApp')  || 'RIS');
+  const recvFac  = hl7Esc(v('cfgRecvFac')  || 'HOSPITAL');
+  const ctrl     = hl7Esc(v('cfgOrderCtrl')|| 'NW');
+  const patCls   = hl7Esc(v('cfgPatClass') || 'O');
+  const dfltProv = (v('cfgProvider') || '').split('^').map(hl7Esc).join('^');   // XCN: user's components kept
+  const ver      = HL7_VERSION;   // these tools emit HL7 v2.5.1 only
 
   const now    = nowHL7();
   const msgID  = uid36();
   const ordNum = uid36ord();
 
   // Pull DICOM values (override fields take priority when non-empty)
-  const ov = id => v(id).trim();
+  // Every DICOM- or user-sourced scalar is HL7-escaped so a delimiter or line
+  // break inside a value cannot shift fields or inject segments.
+  const ov = id => hl7Esc(v(id).trim());
+  const getValE = key => hl7Esc(getVal(key));
+  // Overrides that are composite (XPN, PL, XCN): keep the user's ^ components, escape inside each.
+  const ovC = id => v(id).trim().split('^').map(hl7Esc).join('^');
 
-  const patName  = ov('ovPatName')   || xformName(getVal('00100010'));
-  const patID    = ov('ovMRN')       || getVal('00100020');
-  const patIssuer= getVal('00100021');
+  const patName  = ovC('ovPatName')   || xformName(getVal('00100010'));
+  const patID    = ov('ovMRN')       || getValE('00100020');
+  const patIssuer= getValE('00100021');
   const patDOB   = ov('ovDOB')       || xformDate(getVal('00100030'));
-  const patSex   = getVal('00100040');
-  const accession= ov('ovAccession') || getVal('00080050');
-  const location = ov('ovLocation');
+  const patSex   = getValE('00100040');
+  const accession= ov('ovAccession') || getValE('00080050');
+  const location = ovC('ovLocation');
   const studyDate= getVal('00080020');
   const studyTime= getVal('00080030');
-  const modality = ov('ovModality')  || getVal('00080060');
-  const studyDesc= getVal('00081030');
-  const serDesc  = getVal('0008103e');
+  const modality = ov('ovModality')  || getValE('00080060');
+  const studyDesc= getValE('00081030');
+  const serDesc  = getValE('0008103e');
   const refPhys  = xformName(getVal('00080090'));
-  const instName = getVal('00080080');
-  const station  = getVal('00081010');
-  const body     = getVal('00180015');
-  const studyUID = getVal('0020000d');
-  const studyID  = getVal('00200010');
+  const instName = getValE('00080080');
+  const station  = getValE('00081010');
+  const body     = getValE('00180015');
+  const studyUID = getValE('0020000d');
+  const studyID  = getValE('00200010');
   const perfPhys = xformName(getVal('00081050'));
-  const protocol = getVal('00181030');
+  // OBR-34 Technician is NDL in v2.5.1: the name is a CNN in NDL.1, so its parts are subcomponents (&).
+  const techNDL  = perfPhys ? '&' + perfPhys.split('^').slice(0,2).join('&') : '';
+  const protocol = getValE('00181030');
 
   const obsDT    = xformDateTime(studyDate, studyTime);
   const facility = instName || sendFac;
@@ -972,17 +991,18 @@ function generateORM() {
   const ORC = `ORC|${ctrl}|${ordNum}||||||||||${provider}|||${now}`;
 
   // OBR fields:
-  //   .4  = Universal Service ID (accession^desc^LN or desc^LN)
+  //   .4  = Universal Service ID (CE: ^text — no code system is claimed for free text)
   //   .7  = Observation Date/Time
-  //   .15 = Specimen Source (body part)
+  //   .15 = Specimen Source — left empty: backward-compatible only in v2.5.1 (SPM replaces it)
   //   .16 = Ordering Provider
   //   .18 = Placer Field 1 (accession)
   //   .20 = Filler Field 1 (study ID)
   //   .21 = Filler Field 2 (station name)
   //   .24 = Diagnostic Service Section ID (modality)
-  //   .34 = Technician (performing physician)
+  //   .34 = Technician (NDL: &Family&Given)
   //   .44 = Procedure Code (protocol)
-  const svcID = `${accession ? accession+'^' : ''}${svcDesc}^LN`;
+  //   .46 = Placer Supplemental Service Information (body part)
+  const svcID = `^${svcDesc}`;
   const OBR   = [
     'OBR',        // 0 - segment name
     '1',          // 1 - Set ID
@@ -999,7 +1019,7 @@ function generateORM() {
     '',           // 12
     '',           // 13
     '',           // 14
-    body,         // 15 - Specimen Source (body part)
+    '',           // 15 - Specimen Source (not used in v2.5.1; see OBR-46)
     provider,     // 16 - Ordering Provider
     '',           // 17
     accession,    // 18 - Placer Field 1 (accession)
@@ -1018,7 +1038,7 @@ function generateORM() {
     '',           // 31
     '',           // 32
     '',           // 33
-    perfPhys,     // 34 - Technician
+    techNDL,      // 34 - Technician (NDL)
     '',           // 35
     '',           // 36
     '',           // 37
@@ -1029,6 +1049,8 @@ function generateORM() {
     '',           // 42
     '',           // 43
     protocol,     // 44 - Procedure Code (protocol name)
+    '',           // 45 - Procedure Code Modifier
+    body ? `^${body}` : '', // 46 - Placer Supplemental Service Information (CE text: body part)
   ].join('|').replace(/\|+$/, '');          // strip trailing pipes
 
   const segs = [MSH, PID, PV1, ORC, OBR];
@@ -1036,7 +1058,7 @@ function generateORM() {
   // ZDS — custom Z-segment carrying Study UID
   if (studyUID) segs.push(`ZDS|${studyUID}^^Application^DICOM`);
 
-  return segs.join('\r\n');
+  return segs.join('\r');   // HL7 v2 segment terminator is CR (0x0D)
 }
 
 function v(id) { return document.getElementById(id)?.value||''; }
@@ -1148,7 +1170,7 @@ const SEG_FIELDS = {
   PID:{ 1:'Set ID',3:'Patient Identifier List',5:'Patient Name',7:'Date/Time of Birth',8:'Admin Sex',11:'Patient Address',13:'Phone Number - Home',18:'Patient Account Number' },
   PV1:{ 1:'Set ID',2:'Patient Class',3:'Assigned Patient Location',7:'Attending Doctor',8:'Referring Doctor',17:'Admitting Doctor',19:'Visit Number',20:'Financial Class' },
   ORC:{ 1:'Order Control',2:'Placer Order Number',3:'Filler Order Number',5:'Order Status',9:'Date/Time of Transaction',12:'Ordering Provider',15:'Order Effective Date/Time' },
-  OBR:{ 1:'Set ID',2:'Placer Order Number',3:'Filler Order Number',4:'Universal Service ID',7:'Observation Date/Time',15:'Specimen Source',16:'Ordering Provider',18:'Placer Field 1 (Accession)',20:'Filler Field 1 (Study ID)',21:'Filler Field 2 (Station)',24:'Diagnostic Service Section ID (Modality)',34:'Technician',44:'Procedure Code' },
+  OBR:{ 1:'Set ID',2:'Placer Order Number',3:'Filler Order Number',4:'Universal Service ID',7:'Observation Date/Time',15:'Specimen Source',46:'Placer Supplemental Service Info (Body Part)',16:'Ordering Provider',18:'Placer Field 1 (Accession)',20:'Filler Field 1 (Study ID)',21:'Filler Field 2 (Station)',24:'Diagnostic Service Section ID (Modality)',34:'Technician',44:'Procedure Code' },
   ZDS:{ 1:'Study Instance UID' },
 };
 
@@ -1161,7 +1183,7 @@ function colorFields(content) {
 
 function renderORM(orm) {
   currentORM = orm;
-  const lines = orm.split(/\r?\n/).filter(Boolean);
+  const lines = orm.split(/\r\n|\r|\n/).filter(Boolean);
   let html = '<div class="orm-body">';
   for (const line of lines) {
     const seg = line.substring(0,3);
@@ -1180,7 +1202,7 @@ function renderORM(orm) {
   });
   document.getElementById('ormStatus').textContent =
     `${lines.length} segments · ${new Date().toLocaleTimeString()}`;
-  document.getElementById('rawText').value = orm.replace(/\r\n/g,'\n');
+  document.getElementById('rawText').value = orm.replace(/\r\n?/g,'\n');   // display only; Copy/Download keep CR
 }
 
 function toggleDetail(lineEl, rawLine, seg) {
@@ -1241,10 +1263,13 @@ function renderMapping() {
    ════════════════════════════════════════════════════ */
 function handleFile(file) {
   if (!file) return;
+  const MAX_BYTES = 512 * 1024 * 1024;
+  if (file.size > MAX_BYTES) { showToast(`File is ${(file.size/1e6).toFixed(0)} MB; the limit is 512 MB`); return; }
   const reader = new FileReader();
   reader.onload = e => {
     try {
       parsedTags = parseDICOM(e.target.result);
+      if (parsedTags.truncated) setTimeout(() => showToast('Stopped after 600 elements; the mapping may be incomplete'), 600);
     } catch(err) {
       showToast('DICOM parse error: ' + err.message);
       console.error(err);
@@ -1311,8 +1336,8 @@ function onDrop(e) {
 /* ════════════════════════════════════════════════════
    COPY / MODAL
    ════════════════════════════════════════════════════ */
-function copyORM()  { if (currentORM) nav_copy(currentORM.replace(/\r\n/g,'\n')); }
-function copyRaw()  { nav_copy(document.getElementById('rawText').value); }
+function copyORM()  { if (currentORM) nav_copy(currentORM); }      // CR-terminated, wire-valid
+function copyRaw()  { if (currentORM) nav_copy(currentORM); }
 function showRaw()  { document.getElementById('rawModal').classList.add('open'); }
 function closeRaw() { document.getElementById('rawModal').classList.remove('open'); }
 

@@ -19,37 +19,6 @@
     }
 
     /* ── Light mode overrides for hl7-diff ── */
-    [data-theme="light"] {
-      --row-diff-bg:    rgba(var(--yellow-rgb),0.07);
-      --row-diff-border:rgba(var(--yellow-rgb),0.25);
-      --row-miss-bg:    rgba(var(--red-rgb),0.06);
-      --row-miss-border:rgba(var(--red-rgb),0.25);
-      --cell-miss-bg:   rgba(var(--red-rgb),0.10);
-      --cell-present-bg:rgba(var(--green-rgb),0.10);
-    }
-    [data-theme="light"] .segment-block { background: var(--surface); border-color: var(--border); }
-    [data-theme="light"] .seg-header { background: var(--surface2); border-bottom-color: var(--border); }
-    [data-theme="light"] .seg-name { color: var(--accent); }
-    [data-theme="light"] thead th { background: var(--bg); }
-    [data-theme="light"] td { border-bottom-color: rgba(var(--border-rgb),0.5); }
-    [data-theme="light"] .seg-absent { color: var(--muted); }
-    [data-theme="light"] textarea { background: var(--surface); color: var(--text); border-color: var(--border); }
-    [data-theme="light"] textarea:focus { border-color: var(--accent); }
-    [data-theme="light"] .stat { background: var(--surface); border-color: var(--border); }
-    [data-theme="light"] .stat-value.c-blue { color: var(--accent); }
-    [data-theme="light"] .stat-value.c-green { color: var(--green); }
-    [data-theme="light"] .stat-value.c-yellow { color: var(--yellow); }
-    [data-theme="light"] .stat-value.c-red { color: var(--red); }
-    [data-theme="light"] .toggle { color: var(--muted); }
-    [data-theme="light"] .toggle:hover { color: var(--text); }
-    [data-theme="light"] .seg-ok     { background: rgba(var(--green-rgb),.12);    color: var(--green); }
-    [data-theme="light"] .seg-diff   { background: rgba(var(--yellow-rgb),.12);   color: var(--yellow); }
-    [data-theme="light"] .seg-only-a { background: rgba(var(--accent-rgb),.10);   color: var(--accent); }
-    [data-theme="light"] .seg-only-b { background: rgba(var(--orange-rgb),.12);   color: var(--orange); }
-    [data-theme="light"] .seg-missing{ background: rgba(var(--red-rgb),.10);   color: var(--red); }
-    [data-theme="light"] .cell-missing { background: rgba(var(--red-rgb),0.08); color: var(--red); }
-    [data-theme="light"] .row-diff { background: var(--row-diff-bg); }
-    [data-theme="light"] .row-miss  { background: var(--row-miss-bg); }
 
     body {
       font-family: var(--font-sans);
@@ -305,14 +274,10 @@
   <span class="app-mark">🔀</span>
   <div class="app-titles">
     <h1>HL7 Diff Checker</h1>
-    <p>Side-by-side HL7 v2.x message comparison</p>
+    <p>Side-by-side HL7 v2.5.1 message comparison</p>
   </div>
   <div class="app-actions">
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button class="btn-theme" id="btn-theme" aria-label="Switch to light mode">
-      <span class="theme-icon">☀️</span>
-      <span class="theme-label">Light</span>
-    </button>
   </div>
 </header>
 
@@ -366,8 +331,9 @@ const FIELD_NAMES = {
     'Receiving Application','Receiving Facility','Date/Time of Message','Security',
     'Message Type','Message Control ID','Processing ID','Version ID','Sequence Number',
     'Continuation Pointer','Accept Acknowledgment Type','Application Acknowledgment Type',
-    'Country Code','Character Set','Principal Language of Message','Alternate Character Set Handling'],
-  PID: ['','Set ID','Patient ID (External)','Patient Identifier List','Alternate Patient ID',
+    'Country Code','Character Set','Principal Language of Message','Alternate Character Set Handling Scheme',
+    'Message Profile Identifier'],
+  PID: ['','Set ID','Patient ID','Patient Identifier List','Alternate Patient ID',
     'Patient Name','Mother\'s Maiden Name','Date/Time of Birth','Administrative Sex',
     'Patient Alias','Race','Patient Address','County Code','Phone Number - Home',
     'Phone Number - Business','Primary Language','Marital Status','Religion',
@@ -505,16 +471,42 @@ const FIELD_NAMES = {
    { name, fields[], raw }
    fields[0] = segment name, fields[N] = field N (1-indexed)
 ───────────────────────────────────────────── */
+
+// HL7 v2.5.1 escape sequences, decoded at the subcomponent leaf (after splitting).
+// \F\ \S\ \T\ \R\ \E\ become the delimiters, \Xhh..\ becomes the bytes, \.br\ a line
+// break; formatting/charset escapes (\H\ \N\ \Cxxyy\ \Mxxyyzz\ \Zxx\) stay visible.
+function hl7Unescape(s, d, keepDelims) {
+  const e = d.escChar;
+  if (!s || !e || s.indexOf(e) < 0) return s;
+  const q = c => c.replace(/[\\^$.*+?()[\]{}|-]/g, '\\$&');
+  const re = new RegExp(q(e) + '([^' + q(e) + ']*)' + q(e), 'g');
+  const delim = { F: d.fieldSep, S: d.compSep, T: d.subSep, R: d.repSep, E: e };
+  return s.replace(re, (m, c) => {
+    if (c in delim) return keepDelims ? m : delim[c];
+    if (/^X(?:[0-9A-Fa-f]{2})+$/.test(c)) return c.slice(1).match(/../g).map(h => String.fromCharCode(parseInt(h, 16))).join('');
+    if (c === '.br') return '\n';
+    return m;
+  });
+}
+
+const MAX_HL7_CHARS = 5e6;
+
 function parseHL7(text) {
-  const lines = text.split(/\r?\n|\r/).map(l => l.trim()).filter(Boolean);
+  // Strip BOM/MLLP framing; keep leading/trailing spaces inside field data.
+  text = String(text).replace(/^\uFEFF/, '').replace(/[\x0b\x1c]/g, '');
+  const lines = text.split(/\r\n|\r|\n/).filter(l => l.trim() !== '');
   if (!lines.length) return [];
 
   const segments = [];
   // Detect field separator from MSH
-  let fieldSep = '|';
+  let fieldSep = '|', escChar = '\\';
   for (const l of lines) {
-    if (l.startsWith('MSH') && l.length > 3) { fieldSep = l[3]; break; }
+    if (l.startsWith('MSH') && l.length > 3) { fieldSep = l[3]; escChar = l.split(fieldSep)[1]?.[2] || '\\'; break; }
   }
+  // Canonical form for comparison: decode non-delimiter escapes (\Xhh\, \.br\) so
+  // escape-only spelling differences are not reported as changes.
+  const delims = { fieldSep, compSep: '^', subSep: '&', repSep: '~', escChar };
+  parseHL7.canon = v => hl7Unescape(v, delims, true);
 
   for (const line of lines) {
     const segName = line.substring(0, 3);
@@ -595,7 +587,8 @@ function diffSegments(segA, segB, segName) {
     const fieldName = names[i] || '';
 
     let status;
-    if (a === b)            status = 'same';
+    const canon = parseHL7.canon || (x => x);
+    if (a === b || canon(a) === canon(b)) status = 'same';
     else if (!a && b)       status = 'miss-a';  // A missing, B has value
     else if (a && !b)       status = 'miss-b';  // B missing, A has value
     else                    status = 'diff';
@@ -612,6 +605,9 @@ let lastPairs = null;
 
 function compare() {
   const textA = document.getElementById('msgA').value.trim();
+  if (textA.length > MAX_HL7_CHARS || document.getElementById('msgB').value.length > MAX_HL7_CHARS) {
+    showDiffStatus('Each message is limited to 5 M characters.'); return;
+  }
   const textB = document.getElementById('msgB').value.trim();
   const results = document.getElementById('results');
   const summary = document.getElementById('summary');
@@ -636,7 +632,7 @@ function compare() {
   const segsB = parseHL7(textB);
 
   if (!segsA.length || !segsB.length) {
-    results.innerHTML = `<div class="error-msg">Could not parse one or both messages. Ensure they are valid HL7 v2.x.</div>`;
+    results.innerHTML = `<div class="error-msg">Could not parse one or both messages. Ensure they are valid HL7 v2.5.1.</div>`;
     lastPairs = null;
     return;
   }
@@ -801,13 +797,13 @@ function showDiffStatus(msg) {
 
 function loadSamplePair() {
   const msgA = [
-    "MSH|^~\\&|HIS|HOSP_A|LAB|HOSP_A|20240301120000||ADT^A01|MSG001|P|2.5",
+    "MSH|^~\\&|HIS|HOSP_A|LAB|HOSP_A|20240301120000||ADT^A01^ADT_A01|MSG001|P|2.5.1",
     "EVN|A01|20240301120000",
     "PID|1||MRN111^^^HOSP^MR||DOE^JOHN^A||19800101|M",
     "PV1|1|I|3N^301^A||||1234^SMITH^JANE^^^DR"
   ].join("\n");
   const msgB = [
-    "MSH|^~\\&|HIS|HOSP_A|LAB|HOSP_A|20240301120500||ADT^A01|MSG002|P|2.5",
+    "MSH|^~\\&|HIS|HOSP_A|LAB|HOSP_A|20240301120500||ADT^A01^ADT_A01|MSG002|P|2.5.1",
     "EVN|A01|20240301120500",
     "PID|1||MRN111^^^HOSP^MR||DOE^JOHN^A||19800101|M",
     "PV1|1|I|3N^302^B||||1234^SMITH^JANE^^^DR",

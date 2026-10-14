@@ -3,46 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HL7 v2.x Parser</title>
+  <title>HL7 v2.5.1 Parser</title>
   <link rel="stylesheet" href="theme.css" />
   <script src="theme.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     /* Segment colours — darker for light mode readability */
-    [data-theme="light"] .seg-name.MSH { color: #1d4ed8; }
-    [data-theme="light"] .seg-name.PID { color: #065f46; }
-    [data-theme="light"] .seg-name.PV1,
-    [data-theme="light"] .seg-name.PV2 { color: #92400e; }
-    [data-theme="light"] .seg-name.OBR { color: #78350f; }
-    [data-theme="light"] .seg-name.OBX { color: #5b21b6; }
-    [data-theme="light"] .seg-name.ORC { color: #9d174d; }
-    [data-theme="light"] .seg-name.DG1 { color: #064e3b; }
-    [data-theme="light"] .seg-name.NTE { color: #374151; }
-    [data-theme="light"] .seg-name.AL1 { color: #92400e; }
-    [data-theme="light"] .seg-name.EVN { color: #4c1d95; }
-    [data-theme="light"] .seg-name.IN1 { color: #1e40af; }
-    [data-theme="light"] .seg-name.NK1 { color: #831843; }
-    [data-theme="light"] .seg-name.MRG { color: #78350f; }
-    [data-theme="light"] .seg-name.RXO,
-    [data-theme="light"] .seg-name.RXE,
-    [data-theme="light"] .seg-name.RXA { color: #3f6212; }
-    [data-theme="light"] .seg-name.SCH { color: #164e63; }
-    [data-theme="light"] .seg-name.SPM { color: #581c87; }
-    [data-theme="light"] .seg-name.SAC { color: #312e81; }
-    [data-theme="light"] .seg-name.TQ1,
-    [data-theme="light"] .seg-name.TQ2 { color: #7c2d12; }
 
     /* Light mode inline colour overrides */
-    [data-theme="light"] .comp-label { color: #6d28d9; }
-    [data-theme="light"] .raw-seg-tag { color: #1d4ed8; font-weight: 700; }
-    [data-theme="light"] .raw-sep { color: var(--muted); }
-    [data-theme="light"] .raw-comp-sep { color: #6d28d9; }
-    [data-theme="light"] .raw-rep-sep { color: #b45309; }
-    [data-theme="light"] .raw-sub-sep { color: #c2410c; }
-    [data-theme="light"] .field-value.empty { color: var(--muted); }
-    [data-theme="light"] .rep-header { color: #92400e; }
-    [data-theme="light"] .error-panel { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
 
     .sample-split {
       display: flex;
@@ -293,7 +262,6 @@
     }
 
     .seg-block-header:hover { filter: brightness(1.07); }
-    [data-theme="light"] .seg-block-header:hover { filter: brightness(0.96); }
     .seg-block.collapsed .seg-chevron { transform: rotate(-90deg); }
     .seg-block.collapsed .seg-tbl-body { display: none; }
 
@@ -517,7 +485,7 @@
       font-weight: 700;
     }
 
-    .raw-sep { color: var(--border); }
+    .raw-sep { color: var(--muted); }
     .raw-field { color: var(--text); }
     .raw-comp-sep { color: var(--accent2); }
     .raw-rep-sep { color: var(--yellow); }
@@ -782,14 +750,10 @@
     <h1>HL7 Parser</h1>
     <p>Segment, field and component breakdown — entirely in the browser</p>
   </div>
-  <span class="app-badge">v2.x</span>
+  <span class="app-badge">v2.5.1</span>
   <div class="app-actions">
     <span class="app-hint">Paste an HL7 message to begin</span>
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button class="btn-theme" id="btn-theme" aria-label="Switch to light mode">
-      <span class="theme-icon">☀️</span>
-      <span class="theme-label">Light</span>
-    </button>
   </div>
 </header>
 
@@ -823,7 +787,7 @@
       </div>
     </div>
     <textarea id="hl7-input" spellcheck="false" aria-label="HL7 message input"
-      placeholder="MSH|^~\&|SENDING|FACILITY|RECEIVING|FACILITY|20240301120000||ADT^A01|12345|P|2.5&#10;EVN|A01|20240301120000&#10;PID|1||MRN12345^^^HOSP^MR||DOE^JOHN^A||19800101|M|||123 MAIN ST^^ANYTOWN^CA^90210^USA||(555)555-1234|(555)555-5678||S||ACC12345|SSN-12345&#10;..."></textarea>
+      placeholder="MSH|^~\&|SENDING|FACILITY|RECEIVING|FACILITY|20240301120000||ADT^A01^ADT_A01|12345|P|2.5.1&#10;EVN|A01|20240301120000&#10;PID|1||MRN12345^^^HOSP^MR||DOE^JOHN^A||19800101|M|||123 MAIN ST^^ANYTOWN^CA^90210^USA||(555)555-1234|(555)555-5678||S||ACC12345|SSN-12345&#10;..."></textarea>
     <div id="parse-status" role="status" aria-live="polite" style="display:none;font-size:12px;color:var(--yellow);padding:4px 12px;"></div>
     <div class="input-actions">
       <span id="char-count" style="color: var(--muted); font-size: 11px;">0 chars</span>
@@ -848,7 +812,7 @@
         <div class="seg-table-wrap" id="output-structured" aria-live="polite">
           <div class="empty-state" id="empty-state">
             <div class="icon">⚕</div>
-            <p>Paste an HL7 v2.x message in the input panel<br>and click <strong>Parse</strong> to inspect it.</p>
+            <p>Paste an HL7 v2.5.1 message in the input panel<br>and click <strong>Parse</strong> to inspect it.</p>
           </div>
         </div>
       </div>
@@ -873,7 +837,7 @@
 const SEG_DEFS = {
   MSH: {
     desc: "Message Header",
-    fields: ["(Field Separator)","Encoding Characters","Sending Application","Sending Facility","Receiving Application","Receiving Facility","Date/Time of Message","Security","Message Type","Message Control ID","Processing ID","Version ID","Sequence Number","Continuation Pointer","Accept Acknowledgment Type","Application Acknowledgment Type","Country Code","Character Set","Principal Language of Message","Alternate Character Set Handling Scheme","Message Profile Identifier","Sending Responsible Organization","Receiving Responsible Organization","Sending Network Address","Receiving Network Address"]
+    fields: ["(Field Separator)","Encoding Characters","Sending Application","Sending Facility","Receiving Application","Receiving Facility","Date/Time of Message","Security","Message Type","Message Control ID","Processing ID","Version ID","Sequence Number","Continuation Pointer","Accept Acknowledgment Type","Application Acknowledgment Type","Country Code","Character Set","Principal Language of Message","Alternate Character Set Handling Scheme","Message Profile Identifier"]
   },
   EVN: {
     desc: "Event Type",
@@ -1053,7 +1017,7 @@ const MSG_TYPES = {
 
 const SAMPLES = {};
 
-SAMPLES.ORU = `MSH|^~\&|HIS|METRO_HOSPITAL|LAB|METRO_LAB|20240301143022||ORU^R01|MSG20240301143022|P|2.5|||AL|NE
+SAMPLES.ORU = `MSH|^~\\&|HIS|METRO_HOSPITAL|LAB|METRO_LAB|20240301143022||ORU^R01^ORU_R01|MSG20240301143022|P|2.5.1|||AL|NE
 PID|1||MRN-78432^^^METRO_HOSPITAL^MR||JOHNSON^EMILY^MARIE||19851220|F|||742 EVERGREEN TERRACE^^SPRINGFIELD^IL^62701^USA||(217)555-0123|(217)555-9876||S||ACC-78432|SSN-876543210
 PV1|1|I|4N^403^A^METRO_HOSPITAL||||SMITH^JAMES^B^^^DR|BROWN^ALICE^M^^^DR||MED||||7|AMB||JONES^ROBERT^T^^^DR||V778432|COM|||||||||||||||||||METRO|||||20240301080000
 ORC|RE|ORD-78432|LAB-78432|GRP-001|CM||||20240301143022|||SMITH^JAMES^B^^^DR
@@ -1066,7 +1030,7 @@ OBX|5|NM|777-3^Platelets [#/volume] in Blood by Automated count^LN||225|10*3/uL|
 NTE|1|L|Results reviewed and approved by laboratory director.
 DG1|1|ICD10|Z00.00^Encounter for general adult medical examination without abnormal findings^ICD10||20240301|A`;
 
-SAMPLES.ORM = `MSH|^~\&|CPOE|GENERAL_HOSPITAL|LIS|GENERAL_LAB|20240305140000||ORM^O01|ORM20240305140000|P|2.5
+SAMPLES.ORM = `MSH|^~\\&|CPOE|GENERAL_HOSPITAL|LIS|GENERAL_LAB|20240305140000||ORM^O01^ORM_O01|ORM20240305140000|P|2.5.1
 PID|1||MRN-99201^^^GENERAL^MR||GARCIA^ELENA^MARIE||19750310|F|||200 PINE ST^^BOSTON^MA^02101^USA||(617)555-0145|||S||ACC-99201
 PV1|1|O|CLINIC^101^A^GENERAL||||NGUYEN^PAUL^H^^^DR||||||||AMB
 ORC|NW|ORD-99201-1||GRP-ORM-001|IP||||20240305140000|||NGUYEN^PAUL^H^^^DR|GENERAL_HOSPITAL
@@ -1080,7 +1044,7 @@ OBR|3|ORD-99201-3||85025^CBC with Differential^CPT|||20240305140000|||||||||NGUY
 DG1|1|ICD10|E11.9^Type 2 diabetes mellitus without complications^ICD10||20240305|A
 DG1|2|ICD10|I10^Essential (primary) hypertension^ICD10||20240305|A`;
 
-SAMPLES.ADT_A01 = `MSH|^~\&|ADT|MERCY_HOSPITAL|EHR|MERCY|20240305083000||ADT^A01|ADT20240305083000|P|2.5
+SAMPLES.ADT_A01 = `MSH|^~\\&|ADT|MERCY_HOSPITAL|EHR|MERCY|20240305083000||ADT^A01^ADT_A01|ADT20240305083000|P|2.5.1
 EVN|A01|20240305083000|||NURSE01^JONES^SARAH
 PID|1||MRN-55123^^^MERCY^MR||SMITH^ROBERT^JAMES||19620714|M|||55 OAK AVENUE^^CHICAGO^IL^60601^USA||(312)555-0198|(312)555-7766||M|CAT|ACC-55123|SSN-123-45-6789
 NK1|1|SMITH^MARY^ANN|SPO|55 OAK AVENUE^^CHICAGO^IL^60601|(312)555-0198||EC
@@ -1091,7 +1055,7 @@ AL1|2|FA|PEANUTS^Peanuts^L|MO|Anaphylaxis
 DG1|1|ICD10|I21.9^Acute myocardial infarction, unspecified^ICD10||20240305|A
 IN1|1|BCBS001|BLUECROSS|BLUE CROSS BLUE SHIELD|200 HEALTH PLAZA^^CHICAGO^IL^60602|(312)555-9000||GRP-BCBS-7788|SMITH^ROBERT^JAMES|EMP-1234||20240101|20241231|||SMITH^ROBERT^JAMES|SEL|19620714|55 OAK AVENUE^^CHICAGO^IL^60601`;
 
-SAMPLES.ADT_A08 = `MSH|^~\&|ADT|RIVERSIDE_HOSPITAL|EHR|RIVERSIDE|20240305112000||ADT^A08|ADT20240305112000|P|2.5
+SAMPLES.ADT_A08 = `MSH|^~\\&|ADT|RIVERSIDE_HOSPITAL|EHR|RIVERSIDE|20240305112000||ADT^A08^ADT_A01|ADT20240305112000|P|2.5.1
 EVN|A08|20240305112000|||CLERK02^PHAM^LINDA
 PID|1||MRN-33891^^^RIVERSIDE^MR||NGUYEN^DAVID^MINH||19550903|M|||1420 ELM STREET^^PORTLAND^OR^97201^USA||(503)555-0177|(503)555-3344||D|BUD|ACC-33891|SSN-234-56-7890
 PV1|1|O|CARD^220^A^RIVERSIDE|R|||TORRES^MARIA^L^^^DR|||MED||||1|AMB||LEE^JAMES^K^^^DR||V33891|COM|||||||||||||||||||RIVERSIDE|||||20240305110000
@@ -1101,7 +1065,7 @@ DG1|1|ICD10|I25.10^Atherosclerotic heart disease of native coronary artery witho
 DG1|2|ICD10|E78.5^Hyperlipidemia, unspecified^ICD10||20240305|A
 IN1|1|AETNA001|AETNA|AETNA HEALTH INC|151 FARMINGTON AVE^^HARTFORD^CT^06156|(800)555-0100||GRP-AETNA-4421|NGUYEN^DAVID^MINH|EMP-5678||20240101|20241231|||NGUYEN^DAVID^MINH|SEL|19550903|1420 ELM STREET^^PORTLAND^OR^97201`;
 
-SAMPLES.ADT_A31 = `MSH|^~\&|MPI|COUNTY_HEALTH|EHR|COUNTY|20240305093000||ADT^A31|ADT20240305093000|P|2.5
+SAMPLES.ADT_A31 = `MSH|^~\\&|MPI|COUNTY_HEALTH|EHR|COUNTY|20240305093000||ADT^A31^ADT_A05|ADT20240305093000|P|2.5.1
 EVN|A31|20240305093000|||REG01^KUMAR^PRIYA
 PID|1||MRN-72044^^^COUNTY^MR~PHN-OR-772044^^^STATE^PI||RODRIGUEZ^MARIA^ELENA||19880615|F|||789 CEDAR AVE^^EUGENE^OR^97401^USA||(541)555-0233|(541)555-8800||S|HIS|ACC-72044|SSN-345-67-8901
 NK1|1|RODRIGUEZ^CARLOS^JUAN|SPO|789 CEDAR AVE^^EUGENE^OR^97401|(541)555-0233||EC
@@ -1109,12 +1073,12 @@ NK1|2|RODRIGUEZ^ELENA^MARIE|MTH|321 OAK BLVD^^SALEM^OR^97301|(503)555-7722||FC
 AL1|1|DA|SULFA^Sulfonamides^L|SV|Rash~Fever
 DG1|1|ICD10|Z00.00^Encounter for general adult medical examination without abnormal findings^ICD10||20240305|A`;
 
-SAMPLES.ADT_A40 = `MSH|^~\&|MPI|UNIVERSITY_HOSPITAL|EHR|UNIVERSITY|20240305140000||ADT^A40|ADT20240305140000|P|2.5
+SAMPLES.ADT_A40 = `MSH|^~\\&|MPI|UNIVERSITY_HOSPITAL|EHR|UNIVERSITY|20240305140000||ADT^A40^ADT_A39|ADT20240305140000|P|2.5.1
 EVN|A40|20240305140000|||MPI01^CHEN^WEI
 PID|1||MRN-88123^^^UNIVERSITY^MR||THOMPSON^JAMES^EDWARD||19451222|M|||500 UNIVERSITY AVE^^SEATTLE^WA^98101^USA||(206)555-0144|||W|CAT|ACC-88123|SSN-456-78-9012
 MRG|MRN-OLD-88123^^^UNIVERSITY^MR||ACC-OLD-88123`;
 
-SAMPLES.OML = `MSH|^~\&|CPOE|CITY_HOSPITAL|LIS|CITY_LAB|20240305150000||OML^O21|OML20240305150000|P|2.5
+SAMPLES.OML = `MSH|^~\\&|CPOE|CITY_HOSPITAL|LIS|CITY_LAB|20240305150000||OML^O21^OML_O21|OML20240305150000|P|2.5.1
 PID|1||MRN-44567^^^CITY^MR||PATEL^PRIYA^S||19900422|F|||88 RIVER RD^^AUSTIN^TX^78701^USA||(512)555-0212|||S||ACC-44567
 PV1|1|O|ONC^205^B^CITY_HOSPITAL||||REYES^CARLOS^M^^^DR||||||||AMB
 ORC|NW|ORD-44567-1||GRP-OML-001|IP||||20240305150000|||REYES^CARLOS^M^^^DR
@@ -1131,7 +1095,30 @@ SPM|2|SPEC-44567-2||BLDV^Venous Blood^HL70487||||||||1^mL|||||20240305151500|202
 SAC|||TUBE-44567-2||||20240305151500|||||GOLD^Gold Top SST^L`;
 
 // ─── HL7 Parser ──────────────────────────────────────────────────────────────
+
+// HL7 v2.5.1 escape sequences, decoded at the subcomponent leaf (after splitting).
+// \F\ \S\ \T\ \R\ \E\ become the delimiters, \Xhh..\ becomes the bytes, \.br\ a line
+// break; formatting/charset escapes (\H\ \N\ \Cxxyy\ \Mxxyyzz\ \Zxx\) stay visible.
+function hl7Unescape(s, d, keepDelims) {
+  const e = d.escChar;
+  if (!s || !e || s.indexOf(e) < 0) return s;
+  const q = c => c.replace(/[\\^$.*+?()[\]{}|-]/g, '\\$&');
+  const re = new RegExp(q(e) + '([^' + q(e) + ']*)' + q(e), 'g');
+  const delim = { F: d.fieldSep, S: d.compSep, T: d.subSep, R: d.repSep, E: e };
+  return s.replace(re, (m, c) => {
+    if (c in delim) return keepDelims ? m : delim[c];
+    if (/^X(?:[0-9A-Fa-f]{2})+$/.test(c)) return c.slice(1).match(/../g).map(h => String.fromCharCode(parseInt(h, 16))).join('');
+    if (c === '.br') return '\n';
+    return m;
+  });
+}
+
+const HL7_VERSION = '2.5.1';
+const MAX_HL7_CHARS = 5e6;
+
 function parseHL7(text) {
+  // Strip a BOM and MLLP framing (VT … FS CR) so pasted wire captures parse.
+  text = text.replace(/^\uFEFF/, '').replace(/[\x0b\x1c]/g, '');
   // Normalize line endings; HL7 uses \r, but editors may use \n or \r\n
   const raw = text.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const lines = raw.split('\n').filter(l => l.trim() !== '');
@@ -1203,7 +1190,7 @@ function parseField(rawField, d) {
     const comps = rep.split(d.compSep);
     const components = comps.map(comp => {
       const subs = comp.split(d.subSep);
-      return { raw: comp, subcomponents: subs };
+      return { raw: comp, subcomponents: subs.map(x => hl7Unescape(x, d)) };
     });
     return { raw: rep, components };
   });
@@ -1225,7 +1212,7 @@ function renderStructured(parsed) {
   navEl.innerHTML = '';
 
   // Summary bar
-  const msgTypeLabel = MSG_TYPES[summary.msgType] || MSG_TYPES[summary.msgType?.split('^')[0]] || summary.msgType || 'Unknown';
+  const msgTypeLabel = MSG_TYPES[summary.msgType] || MSG_TYPES[(summary.msgType||'').split('^').slice(0,2).join('^')] || MSG_TYPES[summary.msgType?.split('^')[0]] || summary.msgType || 'Unknown';
   const bar = document.createElement('div');
   bar.className = 'msg-summary';
   bar.innerHTML = `
@@ -1240,6 +1227,7 @@ function renderStructured(parsed) {
     <div class="summary-item">
       <span class="summary-label">Version</span>
       <span class="summary-value yellow">${esc(summary.version || '—')}</span>
+      ${summary.version !== HL7_VERSION ? `<span class="summary-value" style="color:var(--red)" title="These tools validate against HL7 v${HL7_VERSION}">⚠ expected ${HL7_VERSION}</span>` : ''}
     </div>
     <div class="summary-item">
       <span class="summary-label">Ctrl ID</span>
@@ -1365,7 +1353,9 @@ function buildSegTable(seg, delimiters, blockId) {
       const hasSubs = reps.some(r => r.components.some(c => c.subcomponents.length > 1));
 
       if (!hasComps && !hasSubs && !hasReps) {
-        tdVal.textContent = field.raw;
+        const dec = reps[0].components[0].subcomponents[0];   // escapes decoded
+        tdVal.textContent = dec;
+        if (dec !== field.raw) tdVal.title = 'Raw: ' + field.raw;
       } else {
         const rawDiv = document.createElement('div');
         rawDiv.textContent = field.raw;
@@ -1394,7 +1384,7 @@ function buildSegTable(seg, delimiters, blockId) {
             } else {
               const item = document.createElement('div');
               item.className = 'comp-item';
-              item.innerHTML = `<span class="comp-label">.${ci1}</span><span class="comp-val">${esc(comp.raw)}</span>`;
+              item.innerHTML = `<span class="comp-label">.${ci1}</span><span class="comp-val">${esc(comp.subcomponents[0])}</span>`;
               detail.appendChild(item);
             }
           });
@@ -1479,12 +1469,12 @@ function renderJSON(parsed) {
         if (f.raw === '') {
           fields[key] = null;
         } else if (f.repetitions.length === 1 && f.repetitions[0].components.length === 1 && f.repetitions[0].components[0].subcomponents.length === 1) {
-          fields[key] = f.raw;
+          fields[key] = f.repetitions[0].components[0].subcomponents[0];
         } else {
           fields[key] = f.repetitions.map(rep => {
-            if (rep.components.length === 1 && rep.components[0].subcomponents.length === 1) return rep.raw;
+            if (rep.components.length === 1 && rep.components[0].subcomponents.length === 1) return rep.components[0].subcomponents[0];
             return rep.components.map(comp => {
-              if (comp.subcomponents.length === 1) return comp.raw;
+              if (comp.subcomponents.length === 1) return comp.subcomponents[0];
               return comp.subcomponents;
             });
           });
@@ -1554,12 +1544,16 @@ function doParse() {
     return;
   }
 
-  // ── HL7 v2.x path ──────────────────────────────────────────────────────────
+  // ── HL7 v2.5.1 path ──────────────────────────────────────────────────────────
   restoreHL7Panels();
   const structuredContainer = document.getElementById('output-structured');
   const rawContainer = document.getElementById('output-raw');
   const jsonContainer = document.getElementById('output-json');
 
+  if (raw.length > MAX_HL7_CHARS) {
+    structuredContainer.innerHTML = `<div class="error-panel" style="margin:20px">Message is ${(raw.length/1e6).toFixed(1)} M characters; the limit is 5 M.</div>`;
+    return;
+  }
   try {
     const parsed = parseHL7(raw);
     lastParsed = parsed;
@@ -1606,7 +1600,7 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   document.getElementById('output-structured').innerHTML = `
     <div class="empty-state" id="empty-state">
       <div class="icon">⚕</div>
-      <p>Paste an HL7 v2.x message in the input panel<br>and click <strong>Parse</strong> to inspect it.</p>
+      <p>Paste an HL7 v2.5.1 message in the input panel<br>and click <strong>Parse</strong> to inspect it.</p>
     </div>`;
   document.getElementById('output-raw').innerHTML = '';
   document.getElementById('output-json').textContent = '';

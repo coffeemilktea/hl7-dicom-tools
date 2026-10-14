@@ -8,61 +8,6 @@
   <script src="theme.js"></script>
   <style>
     /* ── Light mode overrides for dicom-generator ── */
-    [data-theme="light"] .container {
-      background: var(--surface);
-      border-color: var(--border);
-    }
-    [data-theme="light"] .tag {
-      color: var(--cyan);
-      background: rgba(var(--accent-rgb),0.08);
-      border-color: rgba(var(--accent-rgb),0.2);
-    }
-    [data-theme="light"] .vr {
-      color: var(--pink);
-      background: rgba(var(--red-rgb),0.08);
-      border-color: rgba(var(--red-rgb),0.2);
-    }
-    [data-theme="light"] input[type="text"],
-    [data-theme="light"] input[type="date"],
-    [data-theme="light"] select {
-      background: var(--input-bg);
-      color: var(--text);
-      border-color: var(--border);
-    }
-    [data-theme="light"] input:focus,
-    [data-theme="light"] select:focus {
-      border-color: var(--purple);
-      box-shadow: 0 0 0 3px rgba(var(--accent2-rgb),0.12);
-    }
-    [data-theme="light"] .status.success {
-      background: rgba(var(--green-rgb),0.08);
-      border-color: rgba(var(--green-rgb),0.3);
-      color: var(--green);
-    }
-    [data-theme="light"] .status.error {
-      background: rgba(var(--red-rgb),0.08);
-      border-color: rgba(var(--red-rgb),0.3);
-      color: var(--red);
-    }
-    [data-theme="light"] .tag-table tr:hover td { background: rgba(0,0,0,0.025); }
-    [data-theme="light"] .section-title { color: var(--purple); }
-    [data-theme="light"] .tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); }
-    [data-theme="light"] label { color: var(--text); }
-    [data-theme="light"] .hint, [data-theme="light"] .seq-note, [data-theme="light"] .ct-comma { color: var(--muted); }
-    [data-theme="light"] .btn-add-tag { color: var(--muted); border-color: var(--border); }
-    [data-theme="light"] .btn-add-tag:hover { border-color: var(--purple); color: var(--purple); }
-    [data-theme="light"] .ct-remove { border-color: rgba(var(--red-rgb),0.3); color: var(--red); }
-    [data-theme="light"] .ct-remove:hover { background: rgba(var(--red-rgb),0.08); }
-    [data-theme="light"] .ct-empty { color: var(--muted); border-color: var(--border); }
-    [data-theme="light"] .drop-zone { border-color: var(--border); }
-    [data-theme="light"] .upload-clear { border-color: rgba(var(--red-rgb),0.3); color: var(--red); }
-    [data-theme="light"] .reader-drop-zone { border-color: var(--border); }
-    [data-theme="light"] .reader-clear { border-color: rgba(var(--red-rgb),0.35); color: var(--red); }
-    [data-theme="light"] .tag-table td { border-bottom-color: rgba(var(--border-rgb),0.5); }
-    [data-theme="light"] .td-name { color: var(--text); }
-    [data-theme="light"] .row-sq-hdr td { background: rgba(var(--yellow-rgb),0.04); }
-    [data-theme="light"] .row-item td { background: rgba(var(--accent-rgb),0.04); }
-    [data-theme="light"] .row-meta td { background: rgba(var(--accent2-rgb),0.04); }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -100,7 +45,7 @@
     }
     .tab-btn {
       padding: 8px 20px; font-size: 13px; font-weight: 500; cursor: pointer;
-      background: none; border: none; color: var(--comment);
+      background: none; border: none; color: var(--muted);
       border-bottom: 2px solid transparent; margin-bottom: -1px;
       transition: color 0.15s, border-color 0.15s;
     }
@@ -153,8 +98,8 @@
     }
     input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
 
-    .hint     { font-size: 11px; color: var(--comment); margin-top: 3px; }
-    .seq-note { font-size: 11px; color: var(--comment); margin-top: -6px; margin-bottom: 12px; }
+    .hint     { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .seq-note { font-size: 11px; color: var(--muted); margin-top: -6px; margin-bottom: 12px; }
 
     /* ── Custom tags ── */
     .custom-tag-row {
@@ -164,7 +109,7 @@
       width: 58px; font-family: 'Courier New', monospace;
       font-size: 12px; padding: 9px 8px; text-align: center;
     }
-    .ct-comma  { color: var(--comment); font-size: 13px; flex-shrink: 0; }
+    .ct-comma  { color: var(--muted); font-size: 13px; flex-shrink: 0; }
     .ct-vr     { width: 76px; font-family: 'Courier New', monospace; font-size: 12px; }
     .ct-value  { flex: 1; }
     .ct-remove {
@@ -177,14 +122,14 @@
     .ct-remove:hover { background: rgba(var(--red-rgb),0.12); }
 
     .ct-empty {
-      font-size: 12px; color: var(--comment); text-align: center;
+      font-size: 12px; color: var(--muted); text-align: center;
       padding: 16px; border: 1px dashed var(--border);
       border-radius: 7px; margin-bottom: 10px;
     }
     .btn-add-tag {
       width: 100%; padding: 8px; border-radius: 7px; font-size: 13px;
       font-weight: 500; cursor: pointer; background: none;
-      border: 1px dashed var(--border); color: var(--comment);
+      border: 1px dashed var(--border); color: var(--muted);
       transition: border-color 0.15s, color 0.15s;
     }
     .btn-add-tag:hover { border-color: var(--purple); color: var(--purple); }
@@ -192,7 +137,7 @@
     .ct-header {
       display: flex; gap: 6px; align-items: center;
       font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
-      text-transform: uppercase; color: var(--comment);
+      text-transform: uppercase; color: var(--muted);
       margin-bottom: 6px; padding: 0 0 4px; border-bottom: 1px solid var(--border);
     }
     .ct-h-group  { width: 58px; text-align: center; }
@@ -223,9 +168,9 @@
     .drop-zone:hover, .drop-zone.drag-over {
       border-color: var(--purple); background: rgba(var(--accent2-rgb),0.05);
     }
-    .drop-zone-icon { font-size: 24px; margin-bottom: 6px; color: var(--comment); }
+    .drop-zone-icon { font-size: 24px; margin-bottom: 6px; color: var(--muted); }
     .drop-zone-text { font-size: 13px; color: var(--muted); margin-bottom: 3px; }
-    .drop-zone-hint { font-size: 11px; color: var(--comment); }
+    .drop-zone-hint { font-size: 11px; color: var(--muted); }
 
     .img-upload-preview {
       display: flex; align-items: center; gap: 12px;
@@ -238,7 +183,7 @@
     }
     .upload-info { flex: 1; min-width: 0; }
     .upload-name { font-size: 13px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .upload-dims { font-size: 11px; color: var(--comment); margin-top: 3px; }
+    .upload-dims { font-size: 11px; color: var(--muted); margin-top: 3px; }
     .upload-clear {
       background: none; border: 1px solid rgba(var(--red-rgb),0.3);
       color: var(--red); border-radius: 5px; padding: 4px 10px;
@@ -259,7 +204,7 @@
     .preview-section { margin-top: 24px; display: none; }
     .preview-section h2 {
       font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--comment); margin-bottom: 12px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
     }
     .preview-grid { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: start; }
     canvas { border: 1px solid var(--border); border-radius: 6px; image-rendering: pixelated; }
@@ -280,7 +225,7 @@
 
     .size-badge {
       display: inline-block; margin-top: 8px; font-size: 11px;
-      color: var(--comment); background: var(--border);
+      color: var(--muted); background: var(--border);
       border-radius: 4px; padding: 2px 8px;
     }
 
@@ -295,7 +240,7 @@
     }
     .reader-drop-icon { font-size: 30px; margin-bottom: 10px; }
     .reader-drop-text { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
-    .reader-drop-hint { font-size: 11px; color: var(--comment); }
+    .reader-drop-hint { font-size: 11px; color: var(--muted); }
 
     .reader-status {
       margin-bottom: 12px; padding: 10px 14px; border-radius: 8px;
@@ -309,7 +254,7 @@
     .reader-results { display: none; }
     .reader-file-info {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      font-size: 12px; color: var(--comment); margin-bottom: 10px;
+      font-size: 12px; color: var(--muted); margin-bottom: 10px;
     }
     .reader-file-name {
       font-family: 'Courier New', monospace; color: var(--cyan); font-size: 12px;
@@ -334,7 +279,7 @@
     .tag-table th {
       text-align: left; font-size: 10px; font-weight: 600;
       letter-spacing: 0.06em; text-transform: uppercase;
-      color: var(--comment); padding: 8px 10px;
+      color: var(--muted); padding: 8px 10px;
       border-bottom: 1px solid var(--border);
       position: sticky; top: 0; background: var(--input-bg); z-index: 1;
     }
@@ -355,16 +300,16 @@
     .td-tag  { color: var(--cyan); white-space: nowrap; min-width: 94px; }
     .td-name { color: var(--muted); min-width: 140px; }
     .td-vr   { color: var(--pink); min-width: 32px; }
-    .td-len  { color: var(--comment); text-align: right; min-width: 56px; padding-right: 14px; }
+    .td-len  { color: var(--muted); text-align: right; min-width: 56px; padding-right: 14px; }
     .td-val  { color: var(--green); word-break: break-all; }
-    .td-val.v-pixel { color: var(--comment); }
+    .td-val.v-pixel { color: var(--muted); }
     .td-val.v-sq    { color: var(--yellow); font-style: italic; }
     .td-val.v-uid   { color: var(--purple); word-break: break-all; }
     .td-val.v-meta  { color: var(--orange); word-break: break-all; }
 
     .reader-summary {
       display: flex; gap: 16px; flex-wrap: wrap;
-      font-size: 11px; color: var(--comment); margin-bottom: 10px;
+      font-size: 11px; color: var(--muted); margin-bottom: 10px;
     }
     .reader-summary span { background: var(--border); border-radius: 4px; padding: 2px 8px; }
   </style>
@@ -378,10 +323,6 @@
   </div>
   <div class="app-actions">
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button class="btn-theme" id="btn-theme" aria-label="Switch to light mode">
-      <span class="theme-icon">☀️</span>
-      <span class="theme-label">Light</span>
-    </button>
   </div>
 </header>
 <div class="container-wrap">
@@ -1218,13 +1159,34 @@ const TAG_NAMES = {
 // ─── DICOM value decoder ──────────────────────────────────────────────────────
 
 const _utf8dec = new TextDecoder('utf-8', { fatal: false });
+// DICOM Specific Character Set (0008,0005) → TextDecoder label.
+// Multi-valued (ISO 2022 code extensions) uses the last listed set as an approximation.
+function dicomCharsetLabel(term) {
+  const terms = String(term || '').split('\\').map(t => t.trim()).filter(Boolean);
+  const t = terms[terms.length - 1] || '';
+  const MAP = {
+    'ISO_IR 6':'latin1', 'ISO 2022 IR 6':'latin1',
+    'ISO_IR 100':'latin1', 'ISO 2022 IR 100':'latin1',
+    'ISO_IR 101':'iso-8859-2', 'ISO_IR 109':'iso-8859-3', 'ISO_IR 110':'iso-8859-4',
+    'ISO_IR 144':'iso-8859-5', 'ISO_IR 127':'iso-8859-6', 'ISO_IR 126':'iso-8859-7',
+    'ISO_IR 138':'iso-8859-8', 'ISO_IR 148':'iso-8859-9', 'ISO_IR 166':'tis-620',
+    'ISO_IR 13':'shift_jis', 'ISO 2022 IR 13':'shift_jis',
+    'ISO 2022 IR 87':'iso-2022-jp', 'ISO 2022 IR 159':'iso-2022-jp',
+    'ISO 2022 IR 149':'euc-kr', 'ISO 2022 IR 58':'gb2312',
+    'ISO_IR 192':'utf-8', 'GB18030':'gb18030', 'GBK':'gbk'
+  };
+  return MAP[t] || null;
+}
+// Decoder for text VRs; reset per file, switched when (0008,0005) is read.
+let _textDec = new TextDecoder('latin1');
+const _TEXT_VRS = new Set(['LO','LT','PN','SH','ST','UC','UT']);
 function decodeDICOMValue(vr, bytes) {
   if (!bytes || bytes.length === 0) return '';
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const text = () => {
     let end = bytes.length;
     while (end > 0 && bytes[end - 1] === 0) end--;
-    return _utf8dec.decode(bytes.subarray(0, end)).trim();
+    return (_TEXT_VRS.has(vr) ? _textDec : _utf8dec).decode(bytes.subarray(0, end)).trim();
   };
   switch (vr) {
     case 'US': {
@@ -1388,6 +1350,7 @@ function parseDICOM(buffer) {
       off += actualLen;
       const value = decodeDICOMValue(vr, bytes);
       if (tagStr === '00020010') tsUID = value.trim();
+      if (tagStr === '00080005') { const l = dicomCharsetLabel(value); if (l) { try { _textDec = new TextDecoder(l); } catch (_) {} } }
       // Mark group 0002 elements as meta for styling
       const isMeta = (grp === 0x0002);
       rows.push({ tag: tagStr, vr, length: actualLen, depth, value, isMeta });
@@ -1494,6 +1457,7 @@ function handleDICOMFile(file) {
 
   const fr = new FileReader();
   fr.onload = e => {
+    _textDec = new TextDecoder('latin1');
     try {
       const rows = parseDICOM(e.target.result);
 
@@ -1515,6 +1479,7 @@ function handleDICOMFile(file) {
       document.getElementById('readerDrop').style.display = 'block';
     }
   };
+  if (file.size > 512 * 1024 * 1024) { showReaderError(`File is ${(file.size/1e6).toFixed(0)} MB; the limit is 512 MB`); return; }
   fr.readAsArrayBuffer(file);
 }
 

@@ -5,8 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1a1b26">
+    <link rel="stylesheet" href="{{ '/tools/tokyo-night.css' | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/custom.css' | relative_url }}">
-    <!-- Shared theme controller: applies the saved theme before paint and wires #btn-theme -->
+    <!-- Shared theme controller: dark only; clears any saved light-mode choice -->
     <script src="{{ '/tools/theme.js' | relative_url }}"></script>
     {% seo %}
   </head>
@@ -22,10 +23,6 @@
         </div>
         <nav class="site-nav">
           <a href="{{ site.github.repository_url }}" class="btn">View on GitHub</a>
-          <button class="btn-theme" id="btn-theme" type="button">
-            <span class="theme-icon">☀️</span>
-            <span class="theme-label">Light</span>
-          </button>
         </nav>
       </div>
     </header>

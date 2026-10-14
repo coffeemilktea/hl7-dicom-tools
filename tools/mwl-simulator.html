@@ -13,9 +13,6 @@
       --mono: var(--font-mono);
       --ui: var(--font-sans);
     }
-    [data-theme="light"] {
-      --accent-dim: rgba(var(--accent-rgb),0.12);
-    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: var(--ui); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -67,7 +64,7 @@
     .form-row label .dvr { font-size: 9.5px; color: var(--text-dim); }
     .form-row input, .form-row select { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 5px 7px; border-radius: 4px; font-size: 11px; font-family: var(--mono); }
     .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent-dim); }
-    .form-row input::placeholder { color: var(--border); }
+    .form-row input::placeholder { color: var(--muted); }
     .form-row select option { background: var(--surface2); }
     .date-range { display: flex; gap: 4px; align-items: center; }
     .date-range input { flex: 1; }
@@ -122,12 +119,12 @@
     .log-panel { width: 270px; min-width: 270px; background: var(--input-bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
     .log-body { flex: 1; overflow-y: auto; padding: 7px; }
     .log-entry { font-family: var(--mono); font-size: 10px; line-height: 1.5; margin-bottom: 1px; }
-    .log-ts { color: var(--border); }
+    .log-ts { color: var(--muted); }
     .log-tx { color: var(--accent); }
     .log-rx { color: var(--green); }
     .log-info { color: var(--yellow); }
     .log-err { color: var(--red); }
-    .log-dim { color: var(--border); }
+    .log-dim { color: var(--muted); }
     .log-sep { border-top: 1px solid var(--border); margin: 5px 0; }
 
     /* Worklist tab */
@@ -178,16 +175,16 @@
     .d-tag { color: var(--accent); }
     .d-vr { color: var(--orange); }
     .d-val { color: var(--green); }
-    .d-empty { color: var(--border); }
+    .d-empty { color: var(--muted); }
     .d-name { color: var(--text-dim); }
-    .d-len { color: var(--border); }
-    .d-cmmt { color: var(--border); }
+    .d-len { color: var(--muted); }
+    .d-cmmt { color: var(--muted); }
     .d-sq { color: var(--accent2); }
     .d-item { color: var(--green); }
-    .d-delim { color: var(--border); }
+    .d-delim { color: var(--muted); }
     .dump-rsp-hdr { font-family: var(--mono); font-size: 10px; color: var(--green); margin: 8px 0 3px; padding: 2px 6px; background: var(--surface); border-left: 2px solid var(--green); }
     .dump-rsp-hdr.final { color: var(--accent); background: var(--input-bg); border-color: var(--accent-dim); }
-    .dump-empty-state { color: var(--border); font-size: 11px; padding: 20px 0; text-align: center; font-family: var(--mono); }
+    .dump-empty-state { color: var(--muted); font-size: 11px; padding: 20px 0; text-align: center; font-family: var(--mono); }
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -223,7 +220,6 @@
       <button class="mode-btn" id="btn-ext" onclick="setMode('external')" aria-label="External DICOMweb worklist mode">⇌ EXTERNAL</button>
     </div>
     <a class="app-home" href="https://coffeemilktea.github.io/" target="_blank" rel="noopener">coffeemilktea.github.io<span class="app-home-arrow">↗</span></a>
-    <button id="btn-theme" class="btn-theme" aria-label="Switch to light mode"><span class="theme-icon">☀️</span> <span class="theme-label">Light</span></button>
   </div>
 </header>
 

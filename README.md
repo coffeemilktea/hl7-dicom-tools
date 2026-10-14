@@ -1,6 +1,6 @@
 # HL7 / DICOM Tools Workspace
 
-Browser-based tools for working with HL7 v2.x and DICOM medical data standards.
+Browser-based tools for working with HL7 v2.5.1 and DICOM medical data standards.
 Every HTML tool is single-file and zero-dependency — open it in a browser and go;
 no build step, no server, and no data leaves your browser.
 
@@ -15,7 +15,7 @@ The Mirth Transformer Builder lives separately in
 
 | File | Title | What it does | Preview |
 |------|-------|--------------|---------|
-| [`tools/msgparser.html`](tools/msgparser.html) | HL7 v2 Parser | Decode raw HL7 v2.x messages into segment, field, and component hierarchies. | <details><summary>View</summary>![HL7 v2 Parser](screenshots/msgparser.png)</details> |
+| [`tools/msgparser.html`](tools/msgparser.html) | HL7 v2 Parser | Decode raw HL7 v2.5.1 messages into segment, field, and component hierarchies. | <details><summary>View</summary>![HL7 v2 Parser](screenshots/msgparser.png)</details> |
 | [`tools/diff-checker.html`](tools/diff-checker.html) | HL7 Diff Checker | Compare two HL7 messages side-by-side with segment-level and field-level diff highlighting. | <details><summary>View</summary>![HL7 Diff Checker](screenshots/hl7-diff.png)</details> |
 | [`tools/dicom-generator.html`](tools/dicom-generator.html) | DICOM Toolbox | Create and generate valid Explicit VR Little Endian DICOM files from scratch with custom tag injection. | <details><summary>View</summary>![DICOM Toolbox](screenshots/dicom-generator.png)</details> |
 | [`tools/dicom-viewer.html`](tools/dicom-viewer.html) | Generic DICOM Viewer | Render DICOM image series locally, view tags, perform window/level, and morph tag values. | <details><summary>View</summary>![Generic DICOM Viewer](screenshots/dicom-viewer.png)</details> |
@@ -25,7 +25,7 @@ The Mirth Transformer Builder lives separately in
 ### Detailed Tool Overview & Use Cases
 
 #### 🔍 HL7 v2 Parser ([`tools/msgparser.html`](tools/msgparser.html))
-- **Description:** A utility that decodes raw HL7 v2.x messages and outputs a fully styled tree view showing segment/field details. Hovering over a segment or field breaks down component and subcomponent indexes.
+- **Description:** A utility that decodes raw HL7 v2.5.1 messages and outputs a fully styled tree view showing segment/field details. Hovering over a segment or field breaks down component and subcomponent indexes.
 - **Key Use Cases:**
   - Troubleshooting HL7 interface integration or engine issues by verifying segment structure.
   - Decoding complex clinical messages to verify patient demographics (PID), physician info, or lab results.
@@ -68,13 +68,12 @@ The Mirth Transformer Builder lives separately in
 
 ## Shared theme
 
-[`tools/theme.css`](tools/theme.css) + [`tools/theme.js`](tools/theme.js) provide the shared
-**Tokyo Night** / Tokyo Night Day theme used by every tool in `tools/`. The theme choice persists
-across tools (and the landing page) via the localStorage key `hl7-tools-theme`. Storage access is
-guarded so hardened browsers that block site data still load on dark.
-
-> Follow-up: wire these pages onto the landing repo's `/assets/tokens.css` + `.site-bar` chrome so
-> both repos share one token source. Until then, keep `theme.css` in step with the landing palette.
+[`tools/tokyo-night.css`](tools/tokyo-night.css) is the one shared **Tokyo Night** (night, dark
+only) stylesheet: palette as CSS variables plus base inputs, tables, code blocks, drop zones and the
+focus ring. It is byte-identical to `assets/tokyo-night.css` in `coffeemilktea.github.io`, so the
+tools and the landing page share one token source. [`tools/theme.css`](tools/theme.css) imports it
+and adds the tool chrome (header, buttons, badges). [`tools/theme.js`](tools/theme.js) only clears a
+light-mode choice saved by older versions. All HL7 output and samples use **HL7 v2.5.1**.
 
 ## Development
 
